@@ -1,0 +1,44 @@
+# ============================================
+#  MediScan AI - .gitignore global
+# ============================================
+
+# ---------- Backend (Java / Maven) ----------
+mediscan-ai-backend/target/
+mediscan-ai-backend/uploads/
+*.class
+*.jar
+*.war
+*.log
+hs_err_pid*
+
+# ---------- Frontend (Angular / Node) ----------
+mediscan-ai-frontend/node_modules/
+mediscan-ai-frontend/dist/
+mediscan-ai-frontend/.angular/
+mediscan-ai-frontend/coverage/
+npm-debug.log*
+
+# ---------- Secrets (NE JAMAIS VERSIONNER) ----------
+# Configuration locale (mots de passe MySQL, secret JWT)
+**/application-local.properties
+**/application-local.yml
+# Clé privée du compte de service Firebase (étape 17)
+**/firebase-service-account*.json
+**/serviceAccountKey*.json
+.env
+.env.*
+
+# ---------- IDE ----------
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# ---------- Système ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- Tests OCR ----------
+test-ocr/
