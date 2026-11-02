@@ -1,4 +1,4 @@
 # Copiez ce fichier en "application-local.properties" et remplissez vos valeurs.
-spring.datasource.username=root
+spring.datasource.username=mediscan_user
 spring.datasource.password=CHANGE_ME
 app.jwt.secret=CHANGE_ME_BASE64_64_OCTETS
