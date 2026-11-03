@@ -13,8 +13,7 @@ import lombok.Setter;
 @Setter
 public class Medecin extends Utilisateur {
 
-    /** Numéro professionnel (RPPS) : unique. */
-    @Column(name = "numero_rppx", nullable = false, unique = true, length = 20)
+    @Column(name = "numero_rpps", nullable = false, unique = true, length = 11)
     private String numeroRpps;
 
     @Column(name = "specialite", nullable = false, length = 100)

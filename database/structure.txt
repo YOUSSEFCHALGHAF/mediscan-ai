@@ -1,0 +1,179 @@
+﻿*************************** 1. row ***************************
+       Table: alertes
+Create Table: CREATE TABLE `alertes` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `patient_id` bigint(20) NOT NULL,
+  `scan_id` bigint(20) DEFAULT NULL,
+  `medicament_id` bigint(20) DEFAULT NULL,
+  `type` enum('INTERACTION','CONTRE_INDICATION','ALLERGIE','EXPIRATION') NOT NULL,
+  `niveau_gravite` enum('FAIBLE','MOYEN','ELEVE') NOT NULL,
+  `message` varchar(500) NOT NULL,
+  `date_generation` datetime NOT NULL DEFAULT current_timestamp(),
+  `traitee` tinyint(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `fk_alertes_scans` (`scan_id`),
+  KEY `fk_alertes_medicaments` (`medicament_id`),
+  KEY `idx_alertes_patient_traitee` (`patient_id`,`traitee`),
+  CONSTRAINT `fk_alertes_medicaments` FOREIGN KEY (`medicament_id`) REFERENCES `medicaments` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_alertes_patients` FOREIGN KEY (`patient_id`) REFERENCES `patients` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_alertes_scans` FOREIGN KEY (`scan_id`) REFERENCES `scans` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+*************************** 1. row ***************************
+       Table: anamneses
+Create Table: CREATE TABLE `anamneses` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `patient_id` bigint(20) NOT NULL,
+  `antecedents` text DEFAULT NULL,
+  `allergies` text DEFAULT NULL,
+  `pathologies_chroniques` text DEFAULT NULL,
+  `traitements_en_cours` text DEFAULT NULL,
+  `habitudes_vie` text DEFAULT NULL,
+  `date_maj` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_anamneses_patient` (`patient_id`),
+  CONSTRAINT `fk_anamneses_patients` FOREIGN KEY (`patient_id`) REFERENCES `patients` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+*************************** 1. row ***************************
+       Table: device_tokens
+Create Table: CREATE TABLE `device_tokens` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `utilisateur_id` bigint(20) NOT NULL,
+  `token` varchar(512) NOT NULL,
+  `navigateur` varchar(100) DEFAULT NULL,
+  `date_enregistrement` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_device_tokens_token` (`token`),
+  KEY `fk_device_tokens_users` (`utilisateur_id`),
+  CONSTRAINT `fk_device_tokens_users` FOREIGN KEY (`utilisateur_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+*************************** 1. row ***************************
+       Table: medecins
+Create Table: CREATE TABLE `medecins` (
+  `id` bigint(20) NOT NULL,
+  `numero_rpps` varchar(20) NOT NULL,
+  `specialite` varchar(100) NOT NULL,
+  `telephone` varchar(20) DEFAULT NULL,
+  `numero_rppx` varchar(20) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_medecins_rpps` (`numero_rpps`),
+  CONSTRAINT `fk_medecins_users` FOREIGN KEY (`id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+*************************** 1. row ***************************
+       Table: medicaments
+Create Table: CREATE TABLE `medicaments` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `nom_commercial` varchar(150) NOT NULL,
+  `dci` varchar(150) NOT NULL,
+  `dosage` varchar(50) DEFAULT NULL,
+  `forme_galenique` varchar(50) DEFAULT NULL,
+  `posologie` varchar(255) DEFAULT NULL,
+  `contre_indications` text DEFAULT NULL,
+  `interactions` text DEFAULT NULL,
+  `laboratoire` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_medicaments_nom_dose` (`nom_commercial`,`dosage`),
+  KEY `idx_medicaments_dci` (`dci`),
+  KEY `idx_medicaments_nom` (`nom_commercial`)
+) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+*************************** 1. row ***************************
+       Table: notifications
+Create Table: CREATE TABLE `notifications` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `utilisateur_id` bigint(20) NOT NULL,
+  `titre` varchar(150) NOT NULL,
+  `message` varchar(500) NOT NULL,
+  `type` varchar(30) NOT NULL,
+  `date_envoi` datetime NOT NULL DEFAULT current_timestamp(),
+  `lue` tinyint(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_notifications_user_lue` (`utilisateur_id`,`lue`),
+  CONSTRAINT `fk_notifications_users` FOREIGN KEY (`utilisateur_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+*************************** 1. row ***************************
+       Table: partages
+Create Table: CREATE TABLE `partages` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `patient_id` bigint(20) NOT NULL,
+  `medecin_id` bigint(20) NOT NULL,
+  `perimetre_donnees` varchar(255) NOT NULL,
+  `date_consentement` datetime NOT NULL DEFAULT current_timestamp(),
+  `date_revocation` datetime DEFAULT NULL,
+  `actif` tinyint(1) NOT NULL DEFAULT 1,
+  PRIMARY KEY (`id`),
+  KEY `idx_partages_medecin_actif` (`medecin_id`,`actif`),
+  KEY `idx_partages_patient_actif` (`patient_id`,`actif`),
+  CONSTRAINT `fk_partages_medecins` FOREIGN KEY (`medecin_id`) REFERENCES `medecins` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_partages_patients` FOREIGN KEY (`patient_id`) REFERENCES `patients` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `chk_partages_revocation` CHECK (`date_revocation` is null or `date_revocation` >= `date_consentement`),
+  CONSTRAINT `chk_partages_coherence` CHECK (`actif` = 1 and `date_revocation` is null or `actif` = 0 and `date_revocation` is not null)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+*************************** 1. row ***************************
+       Table: patients
+Create Table: CREATE TABLE `patients` (
+  `id` bigint(20) NOT NULL,
+  `date_naissance` date DEFAULT NULL,
+  `sexe` varchar(10) DEFAULT NULL,
+  `groupe_sanguin` varchar(3) DEFAULT NULL,
+  `telephone` varchar(20) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `fk_patients_users` FOREIGN KEY (`id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `chk_patients_sexe` CHECK (`sexe` is null or `sexe` in ('HOMME','FEMME','AUTRE')),
+  CONSTRAINT `chk_patients_groupe` CHECK (`groupe_sanguin` is null or `groupe_sanguin` in ('A+','A-','B+','B-','AB+','AB-','O+','O-'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+*************************** 1. row ***************************
+       Table: rappels
+Create Table: CREATE TABLE `rappels` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `patient_id` bigint(20) NOT NULL,
+  `medicament_id` bigint(20) NOT NULL,
+  `libelle` varchar(150) NOT NULL,
+  `heure_prise` time NOT NULL,
+  `frequence` varchar(20) NOT NULL DEFAULT 'QUOTIDIEN',
+  `date_debut` date NOT NULL,
+  `date_fin` date DEFAULT NULL,
+  `actif` tinyint(1) NOT NULL DEFAULT 1,
+  `derniere_notification` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `fk_rappels_patients` (`patient_id`),
+  KEY `fk_rappels_medicaments` (`medicament_id`),
+  KEY `idx_rappels_actif_heure` (`actif`,`heure_prise`),
+  CONSTRAINT `fk_rappels_medicaments` FOREIGN KEY (`medicament_id`) REFERENCES `medicaments` (`id`),
+  CONSTRAINT `fk_rappels_patients` FOREIGN KEY (`patient_id`) REFERENCES `patients` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `chk_rappels_frequence` CHECK (`frequence` in ('QUOTIDIEN','HEBDOMADAIRE','PONCTUEL')),
+  CONSTRAINT `chk_rappels_dates` CHECK (`date_fin` is null or `date_fin` >= `date_debut`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+*************************** 1. row ***************************
+       Table: scans
+Create Table: CREATE TABLE `scans` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `patient_id` bigint(20) NOT NULL,
+  `medicament_id` bigint(20) DEFAULT NULL,
+  `image_url` varchar(255) NOT NULL,
+  `date_scan` datetime NOT NULL DEFAULT current_timestamp(),
+  `texte_extrait` text DEFAULT NULL,
+  `numero_lot` varchar(50) DEFAULT NULL,
+  `date_expiration` date DEFAULT NULL,
+  `score_confiance` double DEFAULT NULL,
+  `statut` enum('EN_COURS','TERMINE','A_VERIFIER','ECHEC') NOT NULL DEFAULT 'EN_COURS',
+  PRIMARY KEY (`id`),
+  KEY `fk_scans_medicaments` (`medicament_id`),
+  KEY `idx_scans_patient_date` (`patient_id`,`date_scan`),
+  CONSTRAINT `fk_scans_medicaments` FOREIGN KEY (`medicament_id`) REFERENCES `medicaments` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_scans_patients` FOREIGN KEY (`patient_id`) REFERENCES `patients` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `chk_scans_score` CHECK (`score_confiance` is null or `score_confiance` >= 0 and `score_confiance` <= 100)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+*************************** 1. row ***************************
+       Table: users
+Create Table: CREATE TABLE `users` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `nom` varchar(100) NOT NULL,
+  `prenom` varchar(100) NOT NULL,
+  `email` varchar(150) NOT NULL,
+  `mot_de_passe_hash` varchar(255) NOT NULL,
+  `role` enum('PATIENT','MEDECIN') NOT NULL,
+  `actif` tinyint(1) NOT NULL DEFAULT 1,
+  `date_creation` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_users_email` (`email`),
+  CONSTRAINT `chk_users_email` CHECK (`email` like '%_@_%._%')
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci

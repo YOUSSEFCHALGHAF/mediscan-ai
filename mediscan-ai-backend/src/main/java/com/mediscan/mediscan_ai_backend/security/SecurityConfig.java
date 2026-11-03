@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -21,7 +22,8 @@ import java.io.IOException;
 import java.time.Instant;
 
 /**
- * Configuration de sécurité définitive  – API sans session (STATELESS), authentification par token JWT
+ * Configuration de sécurité  – CORS (CorsConfig) + preflight OPTIONS autorisées
+ * - API sans session (STATELESS), authentification par token JWT
  * — routes publiques : /api/public/**, inscription, connexion
  * - /api/patient/** réservé au rôle PATIENT, /api/medecin/** au rôle MEDECIN
  * — erreurs 401 / 403 renvoyées en JSON
@@ -37,16 +39,19 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                // CORS : utilise le bean CorsConfigurationSource de CorsConfig
+                .cors(Customizer.withDefaults())
                 // Token dans l'en-tête Authorization (pas de cookie) → CSRF inutile
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // Désactive les mécanismes par défaut inadaptés à une API REST
                 .httpBasic(basic -> basic.disable())
                 .formLogin(form -> form.disable())
                 .logout(logout -> logout.disable())
 
                 .authorizeHttpRequests(auth -> auth
+                        // Preflight CORS du navigateur : toujours autorisé
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Public
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers(HttpMethod.POST,
@@ -57,33 +62,27 @@ public class SecurityConfig {
                         // Par rôle
                         .requestMatchers("/api/patient/**").hasRole("PATIENT")
                         .requestMatchers("/api/medecin/**").hasRole("MEDECIN")
-                        // Tout le reste : connecté, quel que soit le rôle
+                        // Tout le reste (dont /api/medicaments/**, /api/auth/me) : connecté
                         .anyRequest().authenticated()
                 )
 
                 .exceptionHandling(ex -> ex
-                        // 401 : pas de token, token invalide ou expiré
                         .authenticationEntryPoint((request, response, e) ->
                                 ecrireErreur(response, 401, "Unauthorized",
                                         "Authentification requise : token absent, invalide ou expiré",
                                         request.getRequestURI()))
-                        // 403 : connecté, mais rôle insuffisant
                         .accessDeniedHandler((request, response, e) ->
                                 ecrireErreur(response, 403, "Forbidden",
                                         "Accès refusé : cette ressource n'est pas accessible avec votre rôle",
                                         request.getRequestURI()))
                 )
 
-                // Notre filtre JWT passe AVANT le filtre de connexion standard
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    /**
-     * Empêche Spring Boot d'enregistrer. Je wtAuthFilter une 2e fois comme filtre global
-     * (il est déjà dans la chaîne de sécurité ci-dessus).
-     */
+    /** Empêche Spring Boot d'enregistrer JwtAuthFilter une 2e fois comme filtre global. */
     @Bean
     public FilterRegistrationBean<JwtAuthFilter> desactiverEnregistrementAuto(JwtAuthFilter filtre) {
         FilterRegistrationBean<JwtAuthFilter> enregistrement = new FilterRegistrationBean<>(filtre);
@@ -91,23 +90,17 @@ public class SecurityConfig {
         return enregistrement;
     }
 
-    /** BCrypt avec un coût de 10 (identique aux hash du script 02_donnees_test.sql). */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(10);
     }
 
-    /**
-     * Gestionnaire d'authentification construit automatiquement par Spring à partir
-     * de CustomUserDetailsService + PasswordEncoder.
-     */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration)
             throws Exception {
         return configuration.getAuthenticationManager();
     }
 
-    /** Écrit une erreur au même format JSON que ApiError (GlobalExceptionHandler). */
     private static void ecrireErreur(HttpServletResponse response, int statut, String erreur,
                                      String message, String chemin) throws IOException {
         response.setStatus(statut);
