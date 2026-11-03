@@ -1,0 +1,65 @@
+// =====================================================================
+//  MediScan AI - Styles globaux et thème Angular Material (Material 3)
+// =====================================================================
+@use '@angular/material' as mat;
+
+html {
+  height: 100%;
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$azure-palette,
+        tertiary: mat.$spring-green-palette,
+      ),
+      typography: Roboto,
+      density: 0,
+    )
+  );
+}
+
+// Couleurs métier de l'application (utilisées par les alertes, badges, états)
+:root {
+  --ms-succes: #1b7f3b;
+  --ms-avertissement: #b26a00;
+  --ms-danger: var(--mat-sys-error);
+  --ms-gravite-faible: #1b7f3b;
+  --ms-gravite-moyen: #b26a00;
+  --ms-gravite-eleve: #ba1a1a;
+}
+
+body {
+  color-scheme: light;
+  background-color: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-medium);
+  margin: 0;
+  height: 100%;
+}
+
+// ---------- Classes utilitaires réutilisées dans toutes les pages ----------
+
+.titre-page {
+  font: var(--mat-sys-headline-small);
+  margin: 0 0 24px;
+}
+
+.texte-secondaire {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.pleine-largeur {
+  width: 100%;
+}
+
+// Grille responsive de cartes : 1 colonne sur mobile, plusieurs sur grand écran
+.grille-cartes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+// Accessibilité : contour visible au clavier (bonnes pratiques WCAG)
+:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
+}

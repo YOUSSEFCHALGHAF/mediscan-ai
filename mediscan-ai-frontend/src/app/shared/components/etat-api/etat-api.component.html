@@ -1,0 +1,38 @@
+<mat-card appearance="outlined" class="carte-etat">
+  <mat-card-header>
+    <mat-icon mat-card-avatar class="avatar">monitor_heart</mat-icon>
+    <mat-card-title>État du système</mat-card-title>
+    <mat-card-subtitle>{{ apiUrl }}</mat-card-subtitle>
+  </mat-card-header>
+
+  <mat-card-content>
+    @if (chargement()) {
+      <div class="ligne">
+        <mat-progress-spinner mode="indeterminate" diameter="24" />
+        <span>Vérification en cours…</span>
+      </div>
+    } @else if (etat(); as e) {
+      <div class="ligne ok">
+        <mat-icon>check_circle</mat-icon>
+        <span>API en ligne ({{ e.status }})</span>
+      </div>
+      <div class="ligne" [class.ok]="e.database === 'CONNECTEE'" [class.ko]="e.database !== 'CONNECTEE'">
+        <mat-icon>{{ e.database === 'CONNECTEE' ? 'database' : 'error' }}</mat-icon>
+        <span>Base MySQL : {{ e.database === 'CONNECTEE' ? 'connectée' : 'indisponible' }}</span>
+      </div>
+      <p class="horodatage">Vérifié le {{ e.timestamp | date: 'dd/MM/yyyy à HH:mm:ss' }}</p>
+    } @else if (erreur()) {
+      <div class="ligne ko">
+        <mat-icon>cloud_off</mat-icon>
+        <span>{{ erreur() }}</span>
+      </div>
+    }
+  </mat-card-content>
+
+  <mat-card-actions align="end">
+    <button mat-button type="button" (click)="verifier()" [disabled]="chargement()">
+      <mat-icon>refresh</mat-icon>
+      Vérifier à nouveau
+    </button>
+  </mat-card-actions>
+</mat-card>

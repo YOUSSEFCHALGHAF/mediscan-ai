@@ -1,0 +1,31 @@
+.carte-etat {
+  max-width: 520px;
+}
+
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mat-sys-primary);
+}
+
+.ligne {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0;
+
+  &.ok {
+    color: var(--ms-succes);
+  }
+
+  &.ko {
+    color: var(--mat-sys-error);
+  }
+}
+
+.horodatage {
+  margin-top: 16px;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
