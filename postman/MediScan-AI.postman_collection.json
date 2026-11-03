@@ -1,70 +1,1816 @@
 {
-	"id": "aff6e629-ae5f-4d82-b29d-0e54256c1d27",
-	"name": "SkillRadar - Local",
-	"values": [
-		{
-			"key": "base_url",
-			"value": "http://localhost:8080",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "candidate_email",
-			"value": "candidat1@skillradar.io",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "candidate_password",
-			"value": "motdepasse123",
-			"type": "secret",
-			"enabled": true
-		},
-		{
-			"key": "recruiter_email",
-			"value": "recruteur1@entreprise.com",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "recruiter_password",
-			"value": "motdepasse456",
-			"type": "secret",
-			"enabled": true
-		},
-		{
-			"key": "recruiter2_email",
-			"value": "recruteur2@entreprise.com",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "recruiter2_password",
-			"value": "motdepasse789",
-			"type": "secret",
-			"enabled": true
-		},
-		{
-			"key": "candidate_token",
-			"value": "",
-			"type": "secret",
-			"enabled": true
-		},
-		{
-			"key": "recruiter_token",
-			"value": "",
-			"type": "secret",
-			"enabled": true
-		},
-		{
-			"key": "recruiter2_token",
-			"value": "",
-			"type": "secret",
-			"enabled": true
-		}
-	],
-	"color": null,
-	"_postman_variable_scope": "environment",
-	"_postman_exported_at": "2026-11-02T15:37:29.863Z",
-	"_postman_exported_using": "Postman/12.34.4"
+  "info": {
+    "name": "MediScan AI - API",
+    "description": "# MediScan AI — API REST\n\nCollection de tests et documentation de l'API du backend Spring Boot de **MediScan AI** (application web de santé : interface Patient et interface Médecin, scan de médicaments par IA/OCR).\n\n## Prérequis\n1. MySQL démarré, base `mediscan_db` chargée avec `database/01_schema.sql` puis `database/02_donnees_test.sql`.\n2. Backend lancé : `mvn spring-boot:run` (port 8081).\n3. Environnement **MediScan Local** sélectionné (variable `baseUrl`).\n\n## Exécution\n- **Tout lancer** : clic droit sur la collection → *Run collection*. Les dossiers s'exécutent dans l'ordre ; le dossier *01 - Authentification* mémorise les tokens utilisés ensuite.\n- **En ligne de commande** : `newman run` (voir `postman/lancer-tests.ps1`).\n\n## Comptes de démonstration (mot de passe : `MediScan2026!`)\n| Email | Rôle |\n|---|---|\n| marc.lefevre@mediscan.test | PATIENT |\n| yasmine.haddad@mediscan.test | PATIENT |\n| nadia.benali@mediscan.test | PATIENT |\n| karim.mansour@mediscan.test | MEDECIN |\n| claire.dubois@mediscan.test | MEDECIN |\n\n## Authentification\nToutes les routes, sauf `/api/public/**`, `/api/auth/login` et `/api/auth/register/**`, exigent l'en-tête `Authorization: Bearer <token>`.\n\n## Tests globaux (après chaque requête)\n- temps de réponse inférieur à 2 secondes (exigence du cahier des charges) ;\n- réponse au format JSON ;\n- aucun mot de passe ni hash BCrypt exposé ;\n- erreurs au format unique `ApiError` (`status`, `erreur`, `message`, `chemin`, `timestamp`).\n\n## Codes de réponse\n| Code | Signification |\n|---|---|\n| 200 | Succès |\n| 201 | Ressource créée (en-tête `Location`) |\n| 204 | Supprimé, pas de contenu |\n| 400 | Données invalides (détail champ par champ dans `details`) |\n| 401 | Token absent, invalide ou expiré |\n| 403 | Rôle insuffisant ou consentement du patient absent |\n| 404 | Ressource introuvable (ou appartenant à un autre utilisateur) |\n| 405 | Méthode HTTP non autorisée |\n| 409 | Conflit (email ou RPPS déjà utilisé) |\n",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "00 - Santé",
+      "description": "Vérifie que l'API et MySQL répondent. À lancer en premier.",
+      "item": [
+        {
+          "name": "Health check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test(\"API UP\", () => pm.expect(j.status).to.eql(\"UP\"));",
+                  "pm.test(\"MySQL connectée\", () => pm.expect(j.database).to.eql(\"CONNECTEE\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/public/health",
+            "description": "**Objectif** : Vérifier que le backend tourne et que MySQL est connecté.\n\n**Rôle requis** : aucun (public)\n\n**Réponses** :\n- `200` : API en ligne, champ `database` = CONNECTEE",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 - Authentification",
+      "description": "Connexion des comptes de démonstration (les tokens sont mémorisés pour les dossiers suivants), inscription et cas d'erreur. **Ce dossier doit être exécuté avant les autres.**",
+      "item": [
+        {
+          "name": "Connexion patient (Marc)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "const schema = {\"type\": \"object\", \"required\": [\"token\", \"type\", \"expiresIn\", \"utilisateur\"], \"properties\": {\"token\": {\"type\": \"string\", \"minLength\": 20}, \"type\": {\"const\": \"Bearer\"}, \"expiresIn\": {\"type\": \"integer\"}, \"utilisateur\": {\"type\": \"object\", \"required\": [\"id\", \"nom\", \"prenom\", \"email\", \"role\"], \"properties\": {\"id\": {\"type\": \"integer\"}, \"nom\": {\"type\": \"string\"}, \"prenom\": {\"type\": \"string\"}, \"email\": {\"type\": \"string\"}, \"role\": {\"enum\": [\"PATIENT\", \"MEDECIN\"]}}}}};",
+                  "pm.test(\"Structure JSON conforme (AuthResponse)\", () => pm.response.to.have.jsonSchema(schema));",
+                  "const j = pm.response.json();",
+                  "pm.test(\"Rôle PATIENT\", () => pm.expect(j.utilisateur.role).to.eql(\"PATIENT\"));",
+                  "pm.collectionVariables.set(\"tokenPatient\", j.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "**Objectif** : Connexion du compte de démonstration marc.lefevre@mediscan.test et mémorisation du token dans `tokenPatient`.\n\n**Rôle requis** : aucun (public)\n\n**Réponses** :\n- `200` : token JWT + utilisateur\n- `401` : identifiants incorrects\n- `400` : données invalides",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"marc.lefevre@mediscan.test\",\n  \"motDePasse\": \"MediScan2026!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Connexion médecin (Dr Mansour)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "const schema = {\"type\": \"object\", \"required\": [\"token\", \"type\", \"expiresIn\", \"utilisateur\"], \"properties\": {\"token\": {\"type\": \"string\", \"minLength\": 20}, \"type\": {\"const\": \"Bearer\"}, \"expiresIn\": {\"type\": \"integer\"}, \"utilisateur\": {\"type\": \"object\", \"required\": [\"id\", \"nom\", \"prenom\", \"email\", \"role\"], \"properties\": {\"id\": {\"type\": \"integer\"}, \"nom\": {\"type\": \"string\"}, \"prenom\": {\"type\": \"string\"}, \"email\": {\"type\": \"string\"}, \"role\": {\"enum\": [\"PATIENT\", \"MEDECIN\"]}}}}};",
+                  "pm.test(\"Structure JSON conforme (AuthResponse)\", () => pm.response.to.have.jsonSchema(schema));",
+                  "const j = pm.response.json();",
+                  "pm.test(\"Rôle MEDECIN\", () => pm.expect(j.utilisateur.role).to.eql(\"MEDECIN\"));",
+                  "pm.collectionVariables.set(\"tokenMedecin\", j.token);",
+                  "pm.test(\"Spécialité Cardiologie\", () => pm.expect(j.utilisateur.specialite).to.eql(\"Cardiologie\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "**Objectif** : Connexion du compte de démonstration karim.mansour@mediscan.test et mémorisation du token dans `tokenMedecin`.\n\n**Rôle requis** : aucun (public)\n\n**Réponses** :\n- `200` : token JWT + utilisateur\n- `401` : identifiants incorrects\n- `400` : données invalides",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"karim.mansour@mediscan.test\",\n  \"motDePasse\": \"MediScan2026!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Connexion médecin (Dr Dubois)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "const schema = {\"type\": \"object\", \"required\": [\"token\", \"type\", \"expiresIn\", \"utilisateur\"], \"properties\": {\"token\": {\"type\": \"string\", \"minLength\": 20}, \"type\": {\"const\": \"Bearer\"}, \"expiresIn\": {\"type\": \"integer\"}, \"utilisateur\": {\"type\": \"object\", \"required\": [\"id\", \"nom\", \"prenom\", \"email\", \"role\"], \"properties\": {\"id\": {\"type\": \"integer\"}, \"nom\": {\"type\": \"string\"}, \"prenom\": {\"type\": \"string\"}, \"email\": {\"type\": \"string\"}, \"role\": {\"enum\": [\"PATIENT\", \"MEDECIN\"]}}}}};",
+                  "pm.test(\"Structure JSON conforme (AuthResponse)\", () => pm.response.to.have.jsonSchema(schema));",
+                  "const j = pm.response.json();",
+                  "pm.test(\"Rôle MEDECIN\", () => pm.expect(j.utilisateur.role).to.eql(\"MEDECIN\"));",
+                  "pm.collectionVariables.set(\"tokenMedecinDubois\", j.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "**Objectif** : Connexion du compte de démonstration claire.dubois@mediscan.test et mémorisation du token dans `tokenMedecinDubois`.\n\n**Rôle requis** : aucun (public)\n\n**Réponses** :\n- `200` : token JWT + utilisateur\n- `401` : identifiants incorrects\n- `400` : données invalides",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"claire.dubois@mediscan.test\",\n  \"motDePasse\": \"MediScan2026!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Mon profil (/me)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "const schema = {\"type\": \"object\", \"required\": [\"id\", \"nom\", \"prenom\", \"email\", \"role\"], \"properties\": {\"id\": {\"type\": \"integer\"}, \"nom\": {\"type\": \"string\"}, \"prenom\": {\"type\": \"string\"}, \"email\": {\"type\": \"string\"}, \"role\": {\"enum\": [\"PATIENT\", \"MEDECIN\"]}}};",
+                  "pm.test(\"Structure JSON conforme (UtilisateurResponse)\", () => pm.response.to.have.jsonSchema(schema));",
+                  "pm.test(\"C'est bien Marc Lefèvre\", () => pm.expect(pm.response.json().nom).to.eql(\"Lefèvre\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/me",
+            "description": "**Objectif** : Renvoyer l'utilisateur correspondant au token.\n\n**Rôle requis** : connecté (tout rôle)\n\n**Réponses** :\n- `200` : utilisateur connecté\n- `401` : token absent ou invalide",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenPatient}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Profil sans token → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 401\", () => pm.response.to.have.status(401));",
+                  "const schema = {\"type\": \"object\", \"required\": [\"status\", \"erreur\", \"message\", \"chemin\", \"timestamp\"]};",
+                  "pm.test(\"Structure JSON conforme (ApiError)\", () => pm.response.to.have.jsonSchema(schema));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/me",
+            "description": "**Objectif** : Vérifier qu'une route protégée refuse une requête sans token.\n\n**Rôle requis** : connecté\n\n**Réponses** :\n- `401` : authentification requise",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Token falsifié → 401",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Modifie les 4 derniers caractères (signature) du token patient",
+                  "const t = pm.collectionVariables.get(\"tokenPatient\") || \"\";",
+                  "const fin = t.endsWith(\"aaaa\") ? \"bbbb\" : \"aaaa\";",
+                  "pm.collectionVariables.set(\"tokenFalsifie\", t.slice(0, -4) + fin);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/me",
+            "description": "**Objectif** : Vérifier qu'un token modifié (signature invalide) est rejeté.\n\n**Rôle requis** : connecté\n\n**Réponses** :\n- `401` : token invalide",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenFalsifie}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mauvais mot de passe → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Message neutre\", () => pm.expect(pm.response.json().message).to.eql(\"Email ou mot de passe incorrect\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "**Objectif** : Vérifier le refus et le message volontairement neutre.\n\n**Rôle requis** : aucun\n\n**Réponses** :\n- `401` : Email ou mot de passe incorrect",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"marc.lefevre@mediscan.test\",\n  \"motDePasse\": \"mauvais123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Email invalide → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Erreur sur le champ email\", () => pm.expect(pm.response.json().details).to.have.property(\"email\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "**Objectif** : Vérifier la validation des champs de connexion.\n\n**Rôle requis** : aucun\n\n**Réponses** :\n- `400` : détail des erreurs par champ",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"pas-un-email\",\n  \"motDePasse\": \"x\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Inscription patient → 201",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"nouveauPatientEmail\", \"sarah.martin.\" + Date.now() + \"@mediscan.test\");"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 201\", () => pm.response.to.have.status(201));",
+                  "const schema = {\"type\": \"object\", \"required\": [\"token\", \"type\", \"expiresIn\", \"utilisateur\"], \"properties\": {\"token\": {\"type\": \"string\", \"minLength\": 20}, \"type\": {\"const\": \"Bearer\"}, \"expiresIn\": {\"type\": \"integer\"}, \"utilisateur\": {\"type\": \"object\", \"required\": [\"id\", \"nom\", \"prenom\", \"email\", \"role\"], \"properties\": {\"id\": {\"type\": \"integer\"}, \"nom\": {\"type\": \"string\"}, \"prenom\": {\"type\": \"string\"}, \"email\": {\"type\": \"string\"}, \"role\": {\"enum\": [\"PATIENT\", \"MEDECIN\"]}}}}};",
+                  "pm.test(\"Structure JSON conforme (AuthResponse)\", () => pm.response.to.have.jsonSchema(schema));",
+                  "const j = pm.response.json();",
+                  "pm.test(\"Rôle PATIENT\", () => pm.expect(j.utilisateur.role).to.eql(\"PATIENT\"));",
+                  "pm.collectionVariables.set(\"nouveauPatientToken\", j.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/register/patient",
+            "description": "**Objectif** : Créer un compte patient (email unique généré à chaque exécution).\n\n**Rôle requis** : aucun (public)\n\n**Réponses** :\n- `201` : compte créé + token\n- `400` : données invalides\n- `409` : email déjà utilisé",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Martin\",\n  \"prenom\": \"Sarah\",\n  \"email\": \"{{nouveauPatientEmail}}\",\n  \"motDePasse\": \"Patiente2026\",\n  \"dateNaissance\": \"1990-06-15\",\n  \"sexe\": \"FEMME\",\n  \"groupeSanguin\": \"O+\",\n  \"telephone\": \"+33612345678\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Inscription email déjà utilisé → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Message explicite\", () => pm.expect(pm.response.json().message).to.include(\"existe déjà\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/register/patient",
+            "description": "**Objectif** : Vérifier l'unicité de l'email (réutilise l'email créé juste avant).\n\n**Rôle requis** : aucun\n\n**Réponses** :\n- `409` : email déjà utilisé",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Martin\",\n  \"prenom\": \"Sarah\",\n  \"email\": \"{{nouveauPatientEmail}}\",\n  \"motDePasse\": \"Patiente2026\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Inscription invalide → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 400\", () => pm.response.to.have.status(400));",
+                  "const d = pm.response.json().details;",
+                  "pm.test(\"Erreurs sur nom, email, motDePasse, sexe\", () => {",
+                  "    [\"nom\", \"email\", \"motDePasse\", \"sexe\"].forEach(c => pm.expect(d).to.have.property(c));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/register/patient",
+            "description": "**Objectif** : Vérifier que chaque champ invalide est signalé.\n\n**Rôle requis** : aucun\n\n**Réponses** :\n- `400` : détail champ par champ",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"\",\n  \"prenom\": \"Test\",\n  \"email\": \"pas-un-email\",\n  \"motDePasse\": \"court\",\n  \"sexe\": \"X\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Inscription médecin → 201",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ts = String(Date.now());",
+                  "pm.collectionVariables.set(\"nouveauMedecinEmail\", \"lucas.garcia.\" + ts + \"@mediscan.test\");",
+                  "// RPPS = 11 chiffres : \"9\" + les 10 derniers chiffres du timestamp",
+                  "pm.collectionVariables.set(\"nouveauRpps\", \"9\" + ts.slice(-10));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 201\", () => pm.response.to.have.status(201));",
+                  "const schema = {\"type\": \"object\", \"required\": [\"token\", \"type\", \"expiresIn\", \"utilisateur\"], \"properties\": {\"token\": {\"type\": \"string\", \"minLength\": 20}, \"type\": {\"const\": \"Bearer\"}, \"expiresIn\": {\"type\": \"integer\"}, \"utilisateur\": {\"type\": \"object\", \"required\": [\"id\", \"nom\", \"prenom\", \"email\", \"role\"], \"properties\": {\"id\": {\"type\": \"integer\"}, \"nom\": {\"type\": \"string\"}, \"prenom\": {\"type\": \"string\"}, \"email\": {\"type\": \"string\"}, \"role\": {\"enum\": [\"PATIENT\", \"MEDECIN\"]}}}}};",
+                  "pm.test(\"Structure JSON conforme (AuthResponse)\", () => pm.response.to.have.jsonSchema(schema));",
+                  "pm.test(\"Rôle MEDECIN\", () => pm.expect(pm.response.json().utilisateur.role).to.eql(\"MEDECIN\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/register/medecin",
+            "description": "**Objectif** : Créer un compte médecin (email et RPPS uniques générés).\n\n**Rôle requis** : aucun (public)\n\n**Réponses** :\n- `201` : compte créé + token\n- `400` : RPPS mal formé\n- `409` : email ou RPPS déjà utilisé",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Garcia\",\n  \"prenom\": \"Lucas\",\n  \"email\": \"{{nouveauMedecinEmail}}\",\n  \"motDePasse\": \"Medecin2026\",\n  \"numeroRpps\": \"{{nouveauRpps}}\",\n  \"specialite\": \"Pneumologie\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Inscription RPPS déjà utilisé → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Message sur le RPPS\", () => pm.expect(pm.response.json().message).to.include(\"RPPS\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/register/medecin",
+            "description": "**Objectif** : Vérifier l'unicité du numéro RPPS (email différent, même RPPS).\n\n**Rôle requis** : aucun\n\n**Réponses** :\n- `409` : RPPS déjà enregistré",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Garcia\",\n  \"prenom\": \"Lucas\",\n  \"email\": \"autre.{{nouveauMedecinEmail}}\",\n  \"motDePasse\": \"Medecin2026\",\n  \"numeroRpps\": \"{{nouveauRpps}}\",\n  \"specialite\": \"Pneumologie\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Contrôle d'accès par rôle",
+      "description": "Vérifie que chaque rôle n'accède qu'à son espace (Spring Security).",
+      "item": [
+        {
+          "name": "Patient → espace médecin → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 403\", () => pm.response.to.have.status(403));",
+                  "const schema = {\"type\": \"object\", \"required\": [\"status\", \"erreur\", \"message\", \"chemin\", \"timestamp\"]};",
+                  "pm.test(\"Structure JSON conforme (ApiError)\", () => pm.response.to.have.jsonSchema(schema));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/medecin/patients",
+            "description": "**Objectif** : Un patient ne doit pas accéder à l'espace médecin.\n\n**Rôle requis** : MEDECIN\n\n**Réponses** :\n- `403` : rôle insuffisant",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenPatient}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Médecin → espace patient → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/patient/profil",
+            "description": "**Objectif** : Un médecin ne doit pas accéder à l'espace patient.\n\n**Rôle requis** : PATIENT\n\n**Réponses** :\n- `403` : rôle insuffisant",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenMedecin}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sans token → espace patient → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/patient/profil",
+            "description": "**Objectif** : Sans token, l'accès est refusé avant même la vérification du rôle.\n\n**Rôle requis** : PATIENT\n\n**Réponses** :\n- `401` : authentification requise",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Patient : profil et anamnèse",
+      "description": "Espace patient (token de Marc Lefèvre). Les modifications réécrivent les valeurs de démonstration : la collection peut être relancée sans réinitialiser la base.",
+      "item": [
+        {
+          "name": "Lire mon profil",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "const schema = {\"type\": \"object\", \"required\": [\"id\", \"nom\", \"prenom\", \"email\", \"role\"], \"properties\": {\"id\": {\"type\": \"integer\"}, \"nom\": {\"type\": \"string\"}, \"prenom\": {\"type\": \"string\"}, \"email\": {\"type\": \"string\"}, \"role\": {\"enum\": [\"PATIENT\", \"MEDECIN\"]}}};",
+                  "pm.test(\"Structure JSON conforme (UtilisateurResponse)\", () => pm.response.to.have.jsonSchema(schema));",
+                  "pm.test(\"Groupe sanguin O+\", () => pm.expect(pm.response.json().groupeSanguin).to.eql(\"O+\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/patient/profil",
+            "description": "**Objectif** : Lire le profil du patient connecté (id lu dans le token).\n\n**Rôle requis** : PATIENT\n\n**Réponses** :\n- `200` : profil"
+          }
+        },
+        {
+          "name": "Modifier mon profil",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "const schema = {\"type\": \"object\", \"required\": [\"id\", \"nom\", \"prenom\", \"email\", \"role\"], \"properties\": {\"id\": {\"type\": \"integer\"}, \"nom\": {\"type\": \"string\"}, \"prenom\": {\"type\": \"string\"}, \"email\": {\"type\": \"string\"}, \"role\": {\"enum\": [\"PATIENT\", \"MEDECIN\"]}}};",
+                  "pm.test(\"Structure JSON conforme (UtilisateurResponse)\", () => pm.response.to.have.jsonSchema(schema));",
+                  "pm.test(\"Téléphone enregistré\", () => pm.expect(pm.response.json().telephone).to.eql(\"+33600000004\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/patient/profil",
+            "description": "**Objectif** : Modifier nom, prénom, date de naissance, sexe, groupe sanguin, téléphone.\n\n**Rôle requis** : PATIENT\n\n**Réponses** :\n- `200` : profil mis à jour\n- `400` : données invalides",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Lefèvre\",\n  \"prenom\": \"Marc\",\n  \"dateNaissance\": \"1958-11-03\",\n  \"sexe\": \"HOMME\",\n  \"groupeSanguin\": \"O+\",\n  \"telephone\": \"+33600000004\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Modifier mon profil (invalide) → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 400\", () => pm.response.to.have.status(400));",
+                  "const d = pm.response.json().details;",
+                  "pm.test(\"Erreurs sur groupeSanguin et dateNaissance\", () => {",
+                  "    pm.expect(d).to.have.property(\"groupeSanguin\");",
+                  "    pm.expect(d).to.have.property(\"dateNaissance\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/patient/profil",
+            "description": "**Objectif** : Vérifier la validation du profil.\n\n**Rôle requis** : PATIENT\n\n**Réponses** :\n- `400` : détail champ par champ",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Lefèvre\",\n  \"prenom\": \"Marc\",\n  \"dateNaissance\": \"2099-01-01\",\n  \"groupeSanguin\": \"Z+\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Lire mon anamnèse",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "const schema = {\"type\": \"object\", \"required\": [\"complete\"], \"properties\": {\"id\": {\"type\": [\"integer\", \"null\"]}, \"allergies\": {\"type\": [\"string\", \"null\"]}, \"traitementsEnCours\": {\"type\": [\"string\", \"null\"]}, \"complete\": {\"type\": \"boolean\"}}};",
+                  "pm.test(\"Structure JSON conforme (AnamneseResponse)\", () => pm.response.to.have.jsonSchema(schema));",
+                  "pm.test(\"Traitement par warfarine\", () => pm.expect(pm.response.json().traitementsEnCours).to.include(\"warfarine\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/patient/anamnese",
+            "description": "**Objectif** : Lire l'anamnèse (renvoie une anamnèse vide si jamais remplie).\n\n**Rôle requis** : PATIENT\n\n**Réponses** :\n- `200` : anamnèse"
+          }
+        },
+        {
+          "name": "Enregistrer mon anamnèse",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "const schema = {\"type\": \"object\", \"required\": [\"complete\"], \"properties\": {\"id\": {\"type\": [\"integer\", \"null\"]}, \"allergies\": {\"type\": [\"string\", \"null\"]}, \"traitementsEnCours\": {\"type\": [\"string\", \"null\"]}, \"complete\": {\"type\": \"boolean\"}}};",
+                  "pm.test(\"Structure JSON conforme (AnamneseResponse)\", () => pm.response.to.have.jsonSchema(schema));",
+                  "pm.test(\"Anamnèse complète\", () => pm.expect(pm.response.json().complete).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/patient/anamnese",
+            "description": "**Objectif** : Créer ou mettre à jour l'anamnèse (listes séparées par des virgules).\n\n**Rôle requis** : PATIENT\n\n**Réponses** :\n- `200` : anamnèse enregistrée\n- `400` : texte trop long",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"antecedents\": \"Infarctus du myocarde (2019), pose de stent\",\n  \"allergies\": \"aucune\",\n  \"pathologiesChroniques\": \"hypertension artérielle, fibrillation auriculaire\",\n  \"traitementsEnCours\": \"warfarine, amlodipine\",\n  \"habitudesVie\": \"Ancien fumeur (arrêt en 2019)\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Anamnèse d'un nouveau patient (vide)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test(\"Anamnèse vide\", () => {",
+                  "    pm.expect(j.id).to.be.null;",
+                  "    pm.expect(j.complete).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/patient/anamnese",
+            "description": "**Objectif** : Un patient qui vient de s'inscrire reçoit une anamnèse vide (formulaire à remplir).\n\n**Rôle requis** : PATIENT\n\n**Réponses** :\n- `200` : anamnèse vide",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{nouveauPatientToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{tokenPatient}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "04 - Patient : historique des scans",
+      "description": "Historique des médicaments scannés. L'upload d'image sera ajouté à l'étape 13.",
+      "item": [
+        {
+          "name": "Historique de mes scans",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "const schema = {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"id\", \"dateScan\", \"statut\"], \"properties\": {\"id\": {\"type\": \"integer\"}, \"statut\": {\"enum\": [\"EN_COURS\", \"TERMINE\", \"A_VERIFIER\", \"ECHEC\"]}, \"medicament\": {\"type\": [\"object\", \"null\"], \"required\": [\"id\", \"nomCommercial\", \"dci\"]}}}};",
+                  "pm.test(\"Structure JSON conforme (liste ScanResponse)\", () => pm.response.to.have.jsonSchema(schema));",
+                  "const liste = pm.response.json();",
+                  "pm.test(\"1 scan : Advil\", () => {",
+                  "    pm.expect(liste).to.have.length(1);",
+                  "    pm.expect(liste[0].medicament.nomCommercial).to.eql(\"Advil\");",
+                  "});",
+                  "pm.collectionVariables.set(\"scanIdMarc\", liste[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/patient/scans",
+            "description": "**Objectif** : Lister les scans du patient, du plus récent au plus ancien.\n\n**Rôle requis** : PATIENT\n\n**Réponses** :\n- `200` : liste des scans"
+          }
+        },
+        {
+          "name": "Détail d'un de mes scans",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Lot 5K2290\", () => pm.expect(pm.response.json().numeroLot).to.eql(\"5K2290\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/patient/scans/{{scanIdMarc}}",
+            "description": "**Objectif** : Lire le détail d'un scan appartenant au patient.\n\n**Rôle requis** : PATIENT\n\n**Réponses** :\n- `200` : scan\n- `404` : scan inexistant ou d'un autre patient"
+          }
+        },
+        {
+          "name": "Scan d'un autre patient → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 404\", () => pm.response.to.have.status(404));",
+                  "const schema = {\"type\": \"object\", \"required\": [\"status\", \"erreur\", \"message\", \"chemin\", \"timestamp\"]};",
+                  "pm.test(\"Structure JSON conforme (ApiError)\", () => pm.response.to.have.jsonSchema(schema));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/patient/scans/1",
+            "description": "**Objectif** : Le scan n°1 appartient à Yasmine : Marc ne doit pas y accéder (protection IDOR).\n\n**Rôle requis** : PATIENT\n\n**Réponses** :\n- `404` : introuvable"
+          }
+        }
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{tokenPatient}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "05 - Patient : rappels (CRUD chaîné)",
+      "description": "Cycle de vie complet d'un rappel : création → lecture → modification → désactivation → suppression. L'id créé est transmis d'une requête à l'autre via la variable `rappelId`.",
+      "item": [
+        {
+          "name": "Lister mes rappels (avant)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"nbRappelsAvant\", pm.response.json().length);",
+                  "pm.test(\"Au moins le rappel Coumadine\", () => pm.expect(pm.response.json().length).to.be.at.least(1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/patient/rappels",
+            "description": "**Objectif** : Lister les rappels triés par heure.\n\n**Rôle requis** : PATIENT\n\n**Réponses** :\n- `200` : liste"
+          }
+        },
+        {
+          "name": "Créer un rappel → 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 201\", () => pm.response.to.have.status(201));",
+                  "const schema = {\"type\": \"object\", \"required\": [\"id\", \"libelle\", \"heurePrise\", \"frequence\", \"dateDebut\", \"actif\", \"medicament\"], \"properties\": {\"id\": {\"type\": \"integer\"}, \"heurePrise\": {\"type\": \"string\", \"pattern\": \"^\\\\d{2}:\\\\d{2}\"}, \"frequence\": {\"enum\": [\"QUOTIDIEN\", \"HEBDOMADAIRE\", \"PONCTUEL\"]}, \"actif\": {\"type\": \"boolean\"}, \"medicament\": {\"type\": [\"object\", \"null\"], \"required\": [\"id\", \"nomCommercial\", \"dci\"]}}};",
+                  "pm.test(\"Structure JSON conforme (RappelResponse)\", () => pm.response.to.have.jsonSchema(schema));",
+                  "const j = pm.response.json();",
+                  "pm.test(\"En-tête Location\", () => pm.response.to.have.header(\"Location\"));",
+                  "pm.test(\"Actif par défaut\", () => pm.expect(j.actif).to.be.true);",
+                  "pm.test(\"Médicament Amlor\", () => pm.expect(j.medicament.nomCommercial).to.eql(\"Amlor\"));",
+                  "pm.collectionVariables.set(\"rappelId\", j.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/patient/rappels",
+            "description": "**Objectif** : Créer un rappel (heure HH:mm, dates AAAA-MM-JJ).\n\n**Rôle requis** : PATIENT\n\n**Réponses** :\n- `201` : rappel créé + en-tête Location\n- `400` : données invalides\n- `404` : médicament inexistant",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"medicamentId\": 11,\n  \"libelle\": \"Amlor du matin\",\n  \"heurePrise\": \"08:30\",\n  \"frequence\": \"QUOTIDIEN\",\n  \"dateDebut\": \"2026-11-02\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Lister mes rappels (après création)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "const avant = Number(pm.collectionVariables.get(\"nbRappelsAvant\"));",
+                  "pm.test(\"Un rappel de plus\", () => pm.expect(pm.response.json().length).to.eql(avant + 1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/patient/rappels",
+            "description": "**Objectif** : Vérifier que le rappel créé apparaît dans la liste.\n\n**Rôle requis** : PATIENT\n\n**Réponses** :\n- `200` : liste"
+          }
+        },
+        {
+          "name": "Lire le rappel créé",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "const schema = {\"type\": \"object\", \"required\": [\"id\", \"libelle\", \"heurePrise\", \"frequence\", \"dateDebut\", \"actif\", \"medicament\"], \"properties\": {\"id\": {\"type\": \"integer\"}, \"heurePrise\": {\"type\": \"string\", \"pattern\": \"^\\\\d{2}:\\\\d{2}\"}, \"frequence\": {\"enum\": [\"QUOTIDIEN\", \"HEBDOMADAIRE\", \"PONCTUEL\"]}, \"actif\": {\"type\": \"boolean\"}, \"medicament\": {\"type\": [\"object\", \"null\"], \"required\": [\"id\", \"nomCommercial\", \"dci\"]}}};",
+                  "pm.test(\"Structure JSON conforme (RappelResponse)\", () => pm.response.to.have.jsonSchema(schema));",
+                  "pm.test(\"Heure 08:30\", () => pm.expect(pm.response.json().heurePrise).to.match(/^08:30/));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/patient/rappels/{{rappelId}}",
+            "description": "**Objectif** : Lire un rappel par son id.\n\n**Rôle requis** : PATIENT\n\n**Réponses** :\n- `200` : rappel\n- `404` : inexistant ou d'un autre patient"
+          }
+        },
+        {
+          "name": "Modifier l'heure du rappel",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Nouvelle heure 09:00\", () => pm.expect(pm.response.json().heurePrise).to.match(/^09:00/));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/patient/rappels/{{rappelId}}",
+            "description": "**Objectif** : Modifier un rappel (ici l'heure).\n\n**Rôle requis** : PATIENT\n\n**Réponses** :\n- `200` : rappel modifié\n- `400` : données invalides",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"medicamentId\": 11,\n  \"libelle\": \"Amlor du matin\",\n  \"heurePrise\": \"09:00\",\n  \"frequence\": \"QUOTIDIEN\",\n  \"dateDebut\": \"2026-11-02\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Désactiver le rappel",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Rappel inactif\", () => pm.expect(pm.response.json().actif).to.be.false);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/patient/rappels/{{rappelId}}",
+            "description": "**Objectif** : Désactiver un rappel sans le supprimer.\n\n**Rôle requis** : PATIENT\n\n**Réponses** :\n- `200` : rappel désactivé",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"medicamentId\": 11,\n  \"libelle\": \"Amlor du matin\",\n  \"heurePrise\": \"09:00\",\n  \"frequence\": \"QUOTIDIEN\",\n  \"dateDebut\": \"2026-11-02\",\n  \"actif\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Période invalide → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Détail de l'erreur fourni\", () => pm.expect(Object.keys(pm.response.json().details)).to.not.be.empty);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/patient/rappels",
+            "description": "**Objectif** : La date de fin ne peut pas précéder la date de début.\n\n**Rôle requis** : PATIENT\n\n**Réponses** :\n- `400` : période invalide",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"medicamentId\": 11,\n  \"libelle\": \"Amlor du matin\",\n  \"heurePrise\": \"08:30\",\n  \"frequence\": \"QUOTIDIEN\",\n  \"dateDebut\": \"2026-11-02\",\n  \"dateFin\": \"2026-01-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Médicament inexistant → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/patient/rappels",
+            "description": "**Objectif** : Un rappel doit concerner un médicament de la base.\n\n**Rôle requis** : PATIENT\n\n**Réponses** :\n- `404` : médicament introuvable",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"medicamentId\": 999,\n  \"libelle\": \"Amlor du matin\",\n  \"heurePrise\": \"08:30\",\n  \"frequence\": \"QUOTIDIEN\",\n  \"dateDebut\": \"2026-11-02\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Rappel d'un autre patient → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/patient/rappels/2",
+            "description": "**Objectif** : Le rappel n°2 appartient à Nadia : Marc ne doit pas y accéder.\n\n**Rôle requis** : PATIENT\n\n**Réponses** :\n- `404` : introuvable"
+          }
+        },
+        {
+          "name": "Supprimer le rappel → 204",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/patient/rappels/{{rappelId}}",
+            "description": "**Objectif** : Supprimer définitivement un rappel.\n\n**Rôle requis** : PATIENT\n\n**Réponses** :\n- `204` : supprimé, pas de contenu\n- `404` : inexistant"
+          }
+        },
+        {
+          "name": "Rappel supprimé → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/patient/rappels/{{rappelId}}",
+            "description": "**Objectif** : Vérifier que le rappel n'existe plus.\n\n**Rôle requis** : PATIENT\n\n**Réponses** :\n- `404` : introuvable"
+          }
+        }
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{tokenPatient}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "06 - Médecin : patients et consentement",
+      "description": "Espace médecin. Vérifie la règle centrale du projet : **aucun accès sans consentement actif**, et uniquement aux catégories autorisées par le patient.",
+      "item": [
+        {
+          "name": "Mes patients (Dr Mansour)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "const schema = {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"id\", \"nom\", \"prenom\", \"alertesNonTraitees\", \"perimetreDonnees\", \"dateConsentement\"]}};",
+                  "pm.test(\"Structure JSON conforme (liste PatientResumeResponse)\", () => pm.response.to.have.jsonSchema(schema));",
+                  "const liste = pm.response.json();",
+                  "pm.test(\"Seulement Marc (Nadia a révoqué)\", () => {",
+                  "    pm.expect(liste).to.have.length(1);",
+                  "    pm.expect(liste[0].nom).to.eql(\"Lefèvre\");",
+                  "});",
+                  "pm.test(\"2 alertes non traitées\", () => pm.expect(liste[0].alertesNonTraitees).to.eql(2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/medecin/patients",
+            "description": "**Objectif** : Lister les patients ayant donné un consentement actif au médecin.\n\n**Rôle requis** : MEDECIN\n\n**Réponses** :\n- `200` : liste"
+          }
+        },
+        {
+          "name": "Fiche de Marc (consentement actif)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "const schema = {\"type\": \"object\", \"required\": [\"id\", \"nom\", \"prenom\", \"perimetreDonnees\", \"dateConsentement\"]};",
+                  "pm.test(\"Structure JSON conforme (FichePatientResponse)\", () => pm.response.to.have.jsonSchema(schema));",
+                  "const f = pm.response.json();",
+                  "pm.test(\"Toutes les catégories partagées\", () => {",
+                  "    pm.expect(f.anamnese.traitementsEnCours).to.include(\"warfarine\");",
+                  "    pm.expect(f.scans).to.have.length(1);",
+                  "    pm.expect(f.alertes).to.have.length(2);",
+                  "    pm.expect(f.rappels).to.have.length(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/medecin/patients/4",
+            "description": "**Objectif** : Fiche synthétique : anamnèse, scans, alertes, rappels selon le périmètre partagé.\n\n**Rôle requis** : MEDECIN\n\n**Réponses** :\n- `200` : fiche\n- `403` : pas de consentement actif\n- `400` : id invalide"
+          }
+        },
+        {
+          "name": "Fiche de Nadia (révoqué) → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 403\", () => pm.response.to.have.status(403));",
+                  "const schema = {\"type\": \"object\", \"required\": [\"status\", \"erreur\", \"message\", \"chemin\", \"timestamp\"]};",
+                  "pm.test(\"Structure JSON conforme (ApiError)\", () => pm.response.to.have.jsonSchema(schema));",
+                  "pm.test(\"Message sur le consentement\", () => pm.expect(pm.response.json().message).to.include(\"consentement\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/medecin/patients/5",
+            "description": "**Objectif** : Nadia a révoqué son consentement : accès refusé.\n\n**Rôle requis** : MEDECIN\n\n**Réponses** :\n- `403` : consentement requis"
+          }
+        },
+        {
+          "name": "Fiche de Yasmine (autre médecin) → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/medecin/patients/3",
+            "description": "**Objectif** : Yasmine a partagé avec le Dr Dubois uniquement.\n\n**Rôle requis** : MEDECIN\n\n**Réponses** :\n- `403` : consentement requis"
+          }
+        },
+        {
+          "name": "Fiche de Yasmine par le Dr Dubois (périmètre)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "const f = pm.response.json();",
+                  "pm.test(\"Catégories partagées présentes\", () => {",
+                  "    pm.expect(f).to.have.property(\"anamnese\");",
+                  "    pm.expect(f).to.have.property(\"scans\");",
+                  "    pm.expect(f).to.have.property(\"alertes\");",
+                  "});",
+                  "pm.test(\"Rappels NON partagés : absents\", () => pm.expect(f).to.not.have.property(\"rappels\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/medecin/patients/3",
+            "description": "**Objectif** : Yasmine a partagé ANAMNESE, SCANS et ALERTES, mais pas RAPPELS : le champ `rappels` doit être absent.\n\n**Rôle requis** : MEDECIN\n\n**Réponses** :\n- `200` : fiche limitée au périmètre",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenMedecinDubois}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Identifiant invalide → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/medecin/patients/abc",
+            "description": "**Objectif** : Un identifiant non numérique est refusé proprement.\n\n**Rôle requis** : MEDECIN\n\n**Réponses** :\n- `400` : paramètre invalide"
+          }
+        }
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{tokenMedecin}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "07 - Base médicamenteuse",
+      "description": "Recherche par nom commercial ou DCI, insensible à la casse et aux accents (accessible aux deux rôles).",
+      "item": [
+        {
+          "name": "Rechercher « doli »",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "const schema = {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"id\", \"nomCommercial\", \"dci\"]}};",
+                  "pm.test(\"Structure JSON conforme (liste MedicamentResponse)\", () => pm.response.to.have.jsonSchema(schema));",
+                  "pm.test(\"Doliprane trouvé\", () => pm.expect(pm.response.json().map(m => m.nomCommercial)).to.include(\"Doliprane\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/medicaments?q=doli",
+            "description": "**Objectif** : Rechercher un médicament (2 caractères minimum, 20 résultats maximum).\n\n**Rôle requis** : connecté (tout rôle)\n\n**Réponses** :\n- `200` : liste\n- `400` : terme trop court ou absent"
+          }
+        },
+        {
+          "name": "Rechercher « PARACETAMOL » (sans accent)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Doliprane et Dafalgan\", () => pm.expect(pm.response.json()).to.have.length(2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/medicaments?q=PARACETAMOL",
+            "description": "**Objectif** : Vérifier l'insensibilité aux accents et à la casse (utile pour l'OCR).\n\n**Rôle requis** : connecté\n\n**Réponses** :\n- `200` : liste"
+          }
+        },
+        {
+          "name": "Recherche par un médecin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Coumadine trouvée\", () => pm.expect(pm.response.json()[0].nomCommercial).to.eql(\"Coumadine\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/medicaments?q=warf",
+            "description": "**Objectif** : Le médecin a aussi accès à la base.\n\n**Rôle requis** : connecté\n\n**Réponses** :\n- `200` : liste",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenMedecin}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Terme trop court → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/medicaments?q=a",
+            "description": "**Objectif** : Moins de 2 caractères : refusé.\n\n**Rôle requis** : connecté\n\n**Réponses** :\n- `400` : terme trop court"
+          }
+        },
+        {
+          "name": "Paramètre q absent → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/medicaments",
+            "description": "**Objectif** : Le paramètre q est obligatoire.\n\n**Rôle requis** : connecté\n\n**Réponses** :\n- `400` : paramètre manquant"
+          }
+        },
+        {
+          "name": "Détail d'un médicament",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "const m = pm.response.json();",
+                  "pm.test(\"Advil / ibuprofène\", () => {",
+                  "    pm.expect(m.nomCommercial).to.eql(\"Advil\");",
+                  "    pm.expect(m.interactions).to.include(\"warfarine\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/medicaments/3",
+            "description": "**Objectif** : Fiche complète d'un médicament.\n\n**Rôle requis** : connecté\n\n**Réponses** :\n- `200` : fiche\n- `404` : inexistant"
+          }
+        },
+        {
+          "name": "Médicament inexistant → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/medicaments/999",
+            "description": "**Objectif** : Identifiant inconnu.\n\n**Rôle requis** : connecté\n\n**Réponses** :\n- `404` : introuvable"
+          }
+        }
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{tokenPatient}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "08 - Gestion des erreurs",
+      "description": "Vérifie que toutes les erreurs sont renvoyées au format JSON ApiError (jamais une page HTML ni une trace Java).",
+      "item": [
+        {
+          "name": "URL inexistante → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 404\", () => pm.response.to.have.status(404));",
+                  "const schema = {\"type\": \"object\", \"required\": [\"status\", \"erreur\", \"message\", \"chemin\", \"timestamp\"]};",
+                  "pm.test(\"Structure JSON conforme (ApiError)\", () => pm.response.to.have.jsonSchema(schema));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/url-inexistante",
+            "description": "**Objectif** : Une URL inconnue renvoie un 404 JSON.\n\n**Rôle requis** : connecté\n\n**Réponses** :\n- `404` : URL inexistante"
+          }
+        },
+        {
+          "name": "Méthode non autorisée → 405",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 405\", () => pm.response.to.have.status(405));",
+                  "const schema = {\"type\": \"object\", \"required\": [\"status\", \"erreur\", \"message\", \"chemin\", \"timestamp\"]};",
+                  "pm.test(\"Structure JSON conforme (ApiError)\", () => pm.response.to.have.jsonSchema(schema));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/patient/profil",
+            "description": "**Objectif** : DELETE n'existe pas sur le profil.\n\n**Rôle requis** : PATIENT\n\n**Réponses** :\n- `405` : méthode non autorisée"
+          }
+        },
+        {
+          "name": "JSON mal formé → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 400\", () => pm.response.to.have.status(400));",
+                  "const schema = {\"type\": \"object\", \"required\": [\"status\", \"erreur\", \"message\", \"chemin\", \"timestamp\"]};",
+                  "pm.test(\"Structure JSON conforme (ApiError)\", () => pm.response.to.have.jsonSchema(schema));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/patient/anamnese",
+            "description": "**Objectif** : Un corps JSON incomplet est refusé proprement.\n\n**Rôle requis** : PATIENT\n\n**Réponses** :\n- `400` : corps illisible",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"antecedents\": \"test\", ",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{tokenPatient}}",
+            "type": "string"
+          }
+        ]
+      }
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// ===== Tests communs à TOUTES les requêtes =====",
+          "const maxMs = Number(pm.environment.get(\"maxResponseTime\") || 2000);",
+          "pm.test(`[Global] Temps de réponse < ${maxMs} ms (cahier des charges)`, () => {",
+          "    pm.expect(pm.response.responseTime).to.be.below(maxMs);",
+          "});",
+          "const corps = pm.response.text();",
+          "if (pm.response.code !== 204 && corps.length > 0) {",
+          "    pm.test(\"[Global] Réponse au format JSON\", () => {",
+          "        pm.expect(pm.response.headers.get(\"Content-Type\") || \"\").to.include(\"application/json\");",
+          "    });",
+          "    pm.test(\"[Global] Aucun mot de passe ni hash exposé\", () => {",
+          "        pm.expect(corps).to.not.include(\"motDePasseHash\");",
+          "        pm.expect(corps).to.not.match(/\\$2[aby]\\$\\d{2}\\$/);",
+          "    });",
+          "}",
+          "if (pm.response.code >= 400) {",
+          "    pm.test(\"[Global] Erreur au format ApiError\", () => {",
+          "        const e = pm.response.json();",
+          "        pm.expect(e.status).to.eql(pm.response.code);",
+          "        pm.expect(e).to.have.property(\"message\");",
+          "        pm.expect(e).to.have.property(\"timestamp\");",
+          "    });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "tokenPatient",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenMedecin",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenMedecinDubois",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenFalsifie",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "nouveauPatientEmail",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "nouveauPatientToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "nouveauMedecinEmail",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "nouveauRpps",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "scanIdMarc",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "nbRappelsAvant",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "rappelId",
+      "value": "",
+      "type": "string"
+    }
+  ]
 }
