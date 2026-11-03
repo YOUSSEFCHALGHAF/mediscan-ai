@@ -1,17 +1,46 @@
 import { Routes } from '@angular/router';
 
+import { authGuard, inviteGuard, roleGuard } from './core/guards/auth.guard';
+import { PublicLayoutComponent } from './shared/layouts/public-layout/public-layout.component';
+
 /**
- * Routes de l'application.
- * loadComponent = chargement "paresseux" : le code d'une page n'est téléchargé
- * que lorsque l'utilisateur la visite (application plus rapide au démarrage).
- * Les espaces /auth, /patient et /medecin seront ajoutés aux étapes 9 à 11.
+ * Routes principales :
+ * - pages publiques (accueil, connexion, inscription) dans la mise en page publique ;
+ * - /patient : espace patient, protégé (connecté + rôle PATIENT) ;
+ * - /medecin : espace médecin (étape 10).
  */
 export const routes: Routes = [
   {
     path: '',
-    title: 'MediScan AI',
-    loadComponent: () =>
-      import('./accueil/accueil.component').then((m) => m.AccueilComponent),
+    component: PublicLayoutComponent,
+    children: [
+      {
+        path: '',
+        title: 'MediScan AI',
+        loadComponent: () => import('./accueil/accueil.component').then((m) => m.AccueilComponent),
+      },
+      {
+        path: 'connexion',
+        title: 'Connexion - MediScan AI',
+        canActivate: [inviteGuard],
+        loadComponent: () =>
+          import('./auth/connexion/connexion.component').then((m) => m.ConnexionComponent),
+      },
+      {
+        path: 'inscription',
+        title: 'Inscription - MediScan AI',
+        canActivate: [inviteGuard],
+        loadComponent: () =>
+          import('./auth/inscription-patient/inscription-patient.component').then(
+            (m) => m.InscriptionPatientComponent,
+          ),
+      },
+    ],
+  },
+  {
+    path: 'patient',
+    canActivate: [authGuard, roleGuard('PATIENT')],
+    loadChildren: () => import('./patient/patient.routes').then((m) => m.PATIENT_ROUTES),
   },
   { path: '**', redirectTo: '' },
 ];

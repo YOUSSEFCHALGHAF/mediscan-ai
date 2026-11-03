@@ -1,0 +1,91 @@
+<h1 class="titre-page">Bonjour {{ auth.utilisateur()?.prenom }} 👋</h1>
+
+@if (chargement()) {
+  <mat-progress-bar mode="indeterminate" />
+} @else if (erreur()) {
+  <mat-card appearance="outlined">
+    <mat-card-content class="erreur">
+      <mat-icon>error</mat-icon>
+      <span>{{ erreur() }}</span>
+      <button mat-button type="button" (click)="charger()">Réessayer</button>
+    </mat-card-content>
+  </mat-card>
+} @else if (donnees(); as d) {
+  <div class="grille-cartes">
+    <!-- Anamnèse -->
+    <mat-card appearance="outlined">
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="avatar">assignment</mat-icon>
+        <mat-card-title>Mon anamnèse</mat-card-title>
+        <mat-card-subtitle>
+          @if (d.anamnese.complete) {
+            Mise à jour le {{ d.anamnese.dateMaj | date: 'd MMMM y' }}
+          } @else {
+            Pas encore renseignée
+          }
+        </mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        @if (d.anamnese.complete) {
+          <p><strong>Allergies :</strong> {{ d.anamnese.allergies || 'non renseignées' }}</p>
+          <p><strong>Traitements :</strong> {{ d.anamnese.traitementsEnCours || 'non renseignés' }}</p>
+        } @else {
+          <p class="texte-secondaire">
+            Votre anamnèse permet à l'IA de détecter les interactions et contre-indications.
+          </p>
+        }
+      </mat-card-content>
+      <mat-card-actions>
+        <a mat-button routerLink="../anamnese">{{ d.anamnese.complete ? 'Modifier' : 'Compléter maintenant' }}</a>
+      </mat-card-actions>
+    </mat-card>
+
+    <!-- Scans -->
+    <mat-card appearance="outlined">
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="avatar">medication</mat-icon>
+        <mat-card-title>Médicaments scannés</mat-card-title>
+        <mat-card-subtitle>{{ d.scans.length }} scan(s) au total</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        @for (s of derniersScans(); track s.id) {
+          <p class="ligne-scan">
+            <span>{{ s.medicament?.nomCommercial ?? 'Non reconnu' }}</span>
+            <span class="texte-secondaire">{{ s.dateScan | date: 'dd/MM/yyyy' }} · {{ libellesStatut[s.statut] }}</span>
+          </p>
+        } @empty {
+          <p class="texte-secondaire">Aucun médicament scanné pour l'instant.</p>
+        }
+      </mat-card-content>
+      <mat-card-actions>
+        <a mat-flat-button routerLink="../scanner">
+          <mat-icon>photo_camera</mat-icon>
+          Scanner
+        </a>
+        <a mat-button routerLink="../historique">Historique</a>
+      </mat-card-actions>
+    </mat-card>
+
+    <!-- Rappels -->
+    <mat-card appearance="outlined">
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="avatar">alarm</mat-icon>
+        <mat-card-title>Rappels</mat-card-title>
+        <mat-card-subtitle>{{ rappelsActifs().length }} rappel(s) actif(s)</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        @if (prochainRappel(); as r) {
+          <p class="prochain">
+            <span class="heure">{{ heureCourte(r.heurePrise) }}</span>
+            <span>{{ r.libelle }}<br /><span class="texte-secondaire">{{ r.medicament.nomCommercial }} {{ r.medicament.dosage }}</span></span>
+          </p>
+        } @else {
+          <p class="texte-secondaire">Aucun rappel actif.</p>
+        }
+      </mat-card-content>
+      <mat-card-actions>
+        <a mat-button routerLink="../rappels">Gérer mes rappels</a>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+}

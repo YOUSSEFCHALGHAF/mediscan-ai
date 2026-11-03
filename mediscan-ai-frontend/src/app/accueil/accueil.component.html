@@ -1,11 +1,46 @@
-<section class="page">
-  <header class="intro">
-    <h1>Bienvenue sur MediScan AI</h1>
+<section class="hero">
+  <div class="hero-texte">
+    <h1>Votre santé, mieux comprise par votre médecin</h1>
     <p>
-      Votre anamnèse structurée, vos médicaments reconnus par l'IA,
-      et un partage sécurisé avec votre médecin.
+      MediScan AI transforme votre historique médical et vos médicaments en informations
+      claires et exploitables, grâce à l'intelligence artificielle.
     </p>
-  </header>
 
+    <div class="actions">
+      @if (auth.estConnecte()) {
+        <a mat-flat-button [routerLink]="auth.cheminEspace()">
+          <mat-icon>dashboard</mat-icon>
+          Accéder à mon espace
+        </a>
+      } @else {
+        <a mat-flat-button routerLink="/inscription">
+          <mat-icon>person_add</mat-icon>
+          Créer un compte
+        </a>
+        <a mat-stroked-button routerLink="/connexion">
+          <mat-icon>login</mat-icon>
+          Se connecter
+        </a>
+      }
+    </div>
+  </div>
+  <mat-icon class="hero-icone" aria-hidden="true">health_and_safety</mat-icon>
+</section>
+
+<section class="grille-cartes fonctionnalites">
+  @for (f of fonctionnalites; track f.titre) {
+    <mat-card appearance="outlined">
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="avatar">{{ f.icone }}</mat-icon>
+        <mat-card-title>{{ f.titre }}</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <p>{{ f.texte }}</p>
+      </mat-card-content>
+    </mat-card>
+  }
+</section>
+
+<section class="etat">
   <app-etat-api />
 </section>

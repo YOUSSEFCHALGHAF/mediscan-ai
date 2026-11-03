@@ -1,0 +1,25 @@
+<mat-toolbar class="barre">
+  <a routerLink="/" class="marque">
+    <mat-icon>medication</mat-icon>
+    <span>{{ nomApplication }}</span>
+  </a>
+
+  <span class="espace"></span>
+
+  @if (auth.estConnecte()) {
+    <a mat-button [routerLink]="auth.cheminEspace()">
+      <mat-icon>dashboard</mat-icon>
+      Mon espace
+    </a>
+  } @else {
+    <a mat-button routerLink="/connexion">Se connecter</a>
+  }
+</mat-toolbar>
+
+<main class="contenu">
+  <router-outlet />
+</main>
+
+<footer class="pied">
+  {{ nomApplication }} — projet académique (MVP). Les informations affichées ne remplacent pas un avis médical.
+</footer>

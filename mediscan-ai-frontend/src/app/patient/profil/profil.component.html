@@ -1,0 +1,82 @@
+<h1 class="titre-page">Mon profil</h1>
+
+@if (chargement()) {
+  <mat-progress-bar mode="indeterminate" />
+} @else {
+  <mat-card appearance="outlined" class="carte">
+    @if (profil(); as p) {
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="avatar">badge</mat-icon>
+        <mat-card-title>{{ p.prenom }} {{ p.nom }}</mat-card-title>
+        <mat-card-subtitle>{{ p.email }} · inscrit le {{ p.dateCreation | date: 'd MMMM y' }}</mat-card-subtitle>
+      </mat-card-header>
+    }
+
+    <mat-card-content>
+      @if (erreur()) {
+        <p class="bandeau-erreur" role="alert">
+          <mat-icon>error</mat-icon>
+          {{ erreur() }}
+        </p>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="enregistrer()" novalidate class="grille">
+        <mat-form-field appearance="outline">
+          <mat-label>Prénom</mat-label>
+          <input matInput formControlName="prenom" required />
+          <mat-error>{{ messageChamp(form.controls.prenom) }}</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Nom</mat-label>
+          <input matInput formControlName="nom" required />
+          <mat-error>{{ messageChamp(form.controls.nom) }}</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Date de naissance</mat-label>
+          <input matInput [matDatepicker]="calendrier" formControlName="dateNaissance" [max]="aujourdhui" placeholder="JJ/MM/AAAA" />
+          <mat-datepicker-toggle matIconSuffix [for]="calendrier" />
+          <mat-datepicker #calendrier startView="multi-year" />
+          <mat-error>{{ messageChamp(form.controls.dateNaissance) }}</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Sexe</mat-label>
+          <mat-select formControlName="sexe">
+            <mat-option [value]="null">Non précisé</mat-option>
+            @for (s of sexes; track s.valeur) {
+              <mat-option [value]="s.valeur">{{ s.libelle }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Groupe sanguin</mat-label>
+          <mat-select formControlName="groupeSanguin">
+            <mat-option [value]="null">Inconnu</mat-option>
+            @for (g of groupesSanguins; track g) {
+              <mat-option [value]="g">{{ g }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Téléphone</mat-label>
+          <input matInput type="tel" formControlName="telephone" />
+          <mat-error>{{ messageChamp(form.controls.telephone) }}</mat-error>
+        </mat-form-field>
+
+        <div class="actions">
+          <button mat-button type="button" (click)="annuler()" [disabled]="form.pristine || enregistrement()">
+            Annuler
+          </button>
+          <button mat-flat-button type="submit" [disabled]="form.pristine || enregistrement()">
+            <mat-icon>save</mat-icon>
+            {{ enregistrement() ? 'Enregistrement…' : 'Enregistrer' }}
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+}

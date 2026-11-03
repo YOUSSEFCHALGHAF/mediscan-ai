@@ -1,19 +1,13 @@
 import { Component } from '@angular/core';
-import { MatIconModule } from '@angular/material/icon';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { RouterLink, RouterOutlet } from '@angular/router';
-
-import { environment } from '../environments/environment';
+import { RouterOutlet } from '@angular/router';
 
 /**
- * Composant racine : barre de titre + zone où s'affichent les pages (router-outlet).
+ * Composant racine : il affiche simplement la page courante.
+ * Chaque espace (public, patient, médecin) apporte sa propre mise en page.
  */
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, MatToolbarModule, MatIconModule],
-  templateUrl: './app.html',
-  styleUrl: './app.scss',
+  imports: [RouterOutlet],
+  template: '<router-outlet />',
 })
-export class App {
-  protected readonly nomApplication = environment.nomApplication;
-}
+export class App {}

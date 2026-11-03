@@ -1,0 +1,65 @@
+<mat-sidenav-container class="conteneur">
+  <mat-sidenav
+    #sidenav
+    class="menu-lateral"
+    [mode]="estMobile() ? 'over' : 'side'"
+    [opened]="!estMobile()"
+    [attr.role]="estMobile() ? 'dialog' : 'navigation'"
+  >
+    <div class="entete-menu">
+      <mat-icon>medication</mat-icon>
+      <span>MediScan AI</span>
+    </div>
+
+    <mat-nav-list>
+      @for (entree of menu; track entree.lien) {
+        <a
+          mat-list-item
+          [routerLink]="entree.lien"
+          routerLinkActive
+          #actif="routerLinkActive"
+          [activated]="actif.isActive"
+          (click)="fermerSiMobile()"
+        >
+          <mat-icon matListItemIcon>{{ entree.icone }}</mat-icon>
+          <span matListItemTitle>{{ entree.libelle }}</span>
+        </a>
+      }
+    </mat-nav-list>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="zone-principale">
+    <mat-toolbar class="barre">
+      @if (estMobile()) {
+        <button mat-icon-button type="button" (click)="sidenav.toggle()" aria-label="Ouvrir le menu">
+          <mat-icon>menu</mat-icon>
+        </button>
+      }
+      <span class="titre">Espace patient</span>
+      <span class="espace"></span>
+
+      <button mat-button type="button" [matMenuTriggerFor]="menuCompte" class="compte">
+        <span class="pastille" aria-hidden="true">{{ initiales() }}</span>
+        @if (!estMobile()) {
+          <span>{{ auth.nomComplet() }}</span>
+        }
+        <mat-icon iconPositionEnd>expand_more</mat-icon>
+      </button>
+      <mat-menu #menuCompte="matMenu" xPosition="before">
+        <a mat-menu-item routerLink="profil">
+          <mat-icon>person</mat-icon>
+          <span>Mon profil</span>
+        </a>
+        <mat-divider />
+        <button mat-menu-item type="button" (click)="seDeconnecter()">
+          <mat-icon>logout</mat-icon>
+          <span>Se déconnecter</span>
+        </button>
+      </mat-menu>
+    </mat-toolbar>
+
+    <main class="contenu">
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

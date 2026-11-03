@@ -1,0 +1,62 @@
+.centre {
+  display: flex;
+  justify-content: center;
+  padding-top: 16px;
+}
+
+.carte {
+  width: 100%;
+  max-width: 440px;
+
+  mat-card-content {
+    padding-top: 16px;
+  }
+}
+
+.bouton {
+  height: 48px;
+  margin-top: 8px;
+
+  mat-progress-spinner {
+    margin: 0 auto;
+  }
+}
+
+.bandeau {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 8px;
+  margin: 0 0 16px;
+
+  &.erreur {
+    background: var(--mat-sys-error-container);
+    color: var(--mat-sys-on-error-container);
+  }
+
+  &.info {
+    background: var(--mat-sys-secondary-container);
+    color: var(--mat-sys-on-secondary-container);
+  }
+}
+
+.lien {
+  text-align: center;
+  margin-top: 24px;
+}
+
+.demo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--mat-sys-outline-variant);
+
+  p {
+    width: 100%;
+    margin: 0;
+    font: var(--mat-sys-body-small);
+  }
+}

@@ -1,4 +1,3 @@
-import { provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
@@ -8,7 +7,7 @@ describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideRouter([]), provideHttpClient()],
+      providers: [provideRouter([])],
     }).compileComponents();
   });
 
@@ -17,10 +16,9 @@ describe('App', () => {
     expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it('affiche le nom de l\'application dans la barre', async () => {
+  it('contient la zone d\'affichage des pages (router-outlet)', () => {
     const fixture = TestBed.createComponent(App);
-    await fixture.whenStable();
     const html = fixture.nativeElement as HTMLElement;
-    expect(html.querySelector('.marque')?.textContent).toContain('MediScan AI');
+    expect(html.querySelector('router-outlet')).not.toBeNull();
   });
 });
