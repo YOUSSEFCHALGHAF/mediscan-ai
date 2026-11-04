@@ -8,7 +8,7 @@
   "projects": {
     "mediscan-ai-frontend": {
       "projectType": "application",
-            "schematics": {
+      "schematics": {
         "@schematics/angular:component": {
           "style": "scss",
           "type": "component",
@@ -48,7 +48,7 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kB",
+                  "maximumWarning": "750kB",
                   "maximumError": "1MB"
                 },
                 {
@@ -69,6 +69,17 @@
                   "with": "src/environments/environment.development.ts"
                 }
               ]
+            },
+            "proxy": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.proxy.ts"
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"
@@ -81,6 +92,10 @@
             },
             "development": {
               "buildTarget": "mediscan-ai-frontend:build:development"
+            },
+            "proxy": {
+              "buildTarget": "mediscan-ai-frontend:build:proxy",
+              "proxyConfig": "proxy.conf.json"
             }
           },
           "defaultConfiguration": "development"

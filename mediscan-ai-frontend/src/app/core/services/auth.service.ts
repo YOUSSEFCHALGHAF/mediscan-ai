@@ -33,8 +33,11 @@ export class AuthService {
 
   /** Utilisateur connecté (null si déconnecté). Restauré depuis localStorage au démarrage. */
   private readonly _utilisateur = signal<Utilisateur | null>(this.lireSessionStockee());
+  /** Date d'expiration du token (en millisecondes depuis 1970), null si déconnecté. */
+  private readonly _expiration = signal<number | null>(this._utilisateur() ? this.lireExpiration() : null);
 
   readonly utilisateur = this._utilisateur.asReadonly();
+  readonly expiration = this._expiration.asReadonly();
   readonly estConnecte = computed(() => this._utilisateur() !== null);
   readonly role = computed<Role | null>(() => this._utilisateur()?.role ?? null);
   readonly nomComplet = computed(() => {
@@ -107,10 +110,12 @@ export class AuthService {
   // ---------------- Interne ----------------
 
   private ouvrirSession(reponse: AuthResponse): void {
+    const expiration = Date.now() + reponse.expiresIn;
     localStorage.setItem(CLE_TOKEN, reponse.token);
-    localStorage.setItem(CLE_EXPIRATION, String(Date.now() + reponse.expiresIn));
+    localStorage.setItem(CLE_EXPIRATION, String(expiration));
     localStorage.setItem(CLE_UTILISATEUR, JSON.stringify(reponse.utilisateur));
     this._utilisateur.set(reponse.utilisateur);
+    this._expiration.set(expiration);
   }
 
   private fermerSession(): void {
@@ -118,6 +123,12 @@ export class AuthService {
     localStorage.removeItem(CLE_EXPIRATION);
     localStorage.removeItem(CLE_UTILISATEUR);
     this._utilisateur.set(null);
+    this._expiration.set(null);
+  }
+
+  private lireExpiration(): number | null {
+    const expiration = Number(localStorage.getItem(CLE_EXPIRATION));
+    return expiration > 0 ? expiration : null;
   }
 
   private lireSessionStockee(): Utilisateur | null {

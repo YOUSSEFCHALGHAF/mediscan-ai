@@ -63,3 +63,34 @@ body {
   outline: 2px solid var(--mat-sys-primary);
   outline-offset: 2px;
 }
+
+// ---------- Notifications (snackbar) colorées selon leur type ----------
+.snack-succes {
+  @include mat.snack-bar-overrides(
+    (
+      container-color: #1b5e20,
+      supporting-text-color: #ffffff,
+      button-color: #c8e6c9,
+    )
+  );
+}
+
+.snack-erreur {
+  @include mat.snack-bar-overrides(
+    (
+      container-color: var(--mat-sys-error),
+      supporting-text-color: var(--mat-sys-on-error),
+      button-color: var(--mat-sys-on-error),
+    )
+  );
+}
+
+.snack-avertissement {
+  @include mat.snack-bar-overrides(
+    (
+      container-color: #8a5300,
+      supporting-text-color: #ffffff,
+      button-color: #ffe0b2,
+    )
+  );
+}
