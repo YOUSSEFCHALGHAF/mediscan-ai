@@ -1,5 +1,5 @@
 import { registerLocaleData } from '@angular/common';
-import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
+import { provideHttpClient, withInterceptors, withXhr } from '@angular/common/http';
 import localeFr from '@angular/common/locales/fr';
 import { ApplicationConfig, LOCALE_ID, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { DateAdapter, MAT_DATE_LOCALE, provideNativeDateAdapter } from '@angular/material/core';
@@ -24,7 +24,9 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes, withComponentInputBinding()),
     // HttpClient + intercepteurs, exécutés dans cet ordre pour chaque requête :
     // 1. chargement (barre globale)  2. erreurs (notifications)  3. auth (token JWT, 401)
-    provideHttpClient(withFetch(), withInterceptors([chargementInterceptor, erreursInterceptor, authInterceptor])),
+    // withXhr() : nécessaire pour suivre la progression de l'envoi des photos
+    // (le moteur "fetch", par défaut dans Angular 22, ne sait pas mesurer un envoi).
+    provideHttpClient(withXhr(), withInterceptors([chargementInterceptor, erreursInterceptor, authInterceptor])),
     // Langue française
     { provide: LOCALE_ID, useValue: 'fr-FR' },
     // Sélecteurs de date Material en français, saisie clavier JJ/MM/AAAA acceptée

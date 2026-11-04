@@ -1,0 +1,39 @@
+<div class="cadre">
+  <!-- La vidéo est toujours présente (viewChild), mais cachée tant que la caméra n'est pas prête -->
+  <video #video class="video" [class.visible]="etat() === 'active'" playsinline muted aria-label="Aperçu de la caméra"></video>
+
+  @if (etat() === 'active') {
+    <div class="guide" aria-hidden="true"><span>Placez la boîte dans le cadre</span></div>
+  }
+
+  @switch (etat()) {
+    @case ('demarrage') {
+      <div class="message">
+        <mat-progress-spinner mode="indeterminate" diameter="40" />
+        <p>Démarrage de la caméra… Autorisez l'accès si votre navigateur le demande.</p>
+      </div>
+    }
+    @case ('erreur') {
+      <div class="message erreur" role="alert">
+        <mat-icon>videocam_off</mat-icon>
+        <p>{{ erreur() }}</p>
+        <button mat-stroked-button type="button" (click)="demarrer()">Réessayer</button>
+      </div>
+    }
+  }
+</div>
+
+@if (etat() === 'active') {
+  <div class="actions">
+    @if (cameras().length > 1) {
+      <button mat-stroked-button type="button" (click)="changerCamera()">
+        <mat-icon>cameraswitch</mat-icon>
+        Changer de caméra
+      </button>
+    }
+    <button mat-flat-button type="button" class="declencheur" (click)="capturer()">
+      <mat-icon>photo_camera</mat-icon>
+      Prendre la photo
+    </button>
+  </div>
+}

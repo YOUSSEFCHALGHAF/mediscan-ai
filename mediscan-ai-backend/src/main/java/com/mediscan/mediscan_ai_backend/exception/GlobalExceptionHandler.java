@@ -9,12 +9,16 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.LinkedHashMap;
@@ -67,6 +71,36 @@ public class GlobalExceptionHandler {
         return construire(HttpStatus.BAD_REQUEST, ex.getMessage(), req, null);
     }
 
+    // ==================== Envoi de fichiers (étape 13) ====================
+
+    /** 413 : fichier plus gros que spring.servlet.multipart.max-file-size (5 Mo). */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiError> fichierTropGros(MaxUploadSizeExceededException ex, HttpServletRequest req) {
+        return construire(HttpStatus.valueOf(413),
+                "L'image dépasse la taille maximale autorisée (5 Mo)", req, null);
+    }
+
+    /** 400 : requête multipart sans le champ "image". */
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ApiError> fichierManquant(MissingServletRequestPartException ex, HttpServletRequest req) {
+        return construire(HttpStatus.BAD_REQUEST,
+                "Image manquante : envoyez le fichier dans le champ « " + ex.getRequestPartName() + " »", req, null);
+    }
+
+    /** 400 : la requête n'est pas un envoi de fichier valide. */
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<ApiError> multipartInvalide(MultipartException ex, HttpServletRequest req) {
+        return construire(HttpStatus.BAD_REQUEST,
+                "Requête invalide : l'image doit être envoyée en multipart/form-data", req, null);
+    }
+
+    /** 415 : mauvais type de contenu (ex. JSON envoyé à la place d'un fichier). */
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ApiError> typeNonSupporte(HttpMediaTypeNotSupportedException ex, HttpServletRequest req) {
+        return construire(HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+                "Type de contenu non pris en charge : " + ex.getContentType(), req, null);
+    }
+
     // ==================== 401 / 403 ====================
 
     @ExceptionHandler(BadCredentialsException.class)
@@ -117,13 +151,13 @@ public class GlobalExceptionHandler {
 
     /** Contrainte MySQL violée (UNIQUE, CHECK, clé étrangère). */
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ApiError> handleIntegrite(DataIntegrityViolationException ex, HttpServletRequest request) {
-        log.warn("Contrainte de base violée sur {} : {}", request.getRequestURI(),
+    public ResponseEntity<ApiError> integrite(DataIntegrityViolationException ex, HttpServletRequest req) {
+        log.warn("Contrainte de base violée sur {} : {}", req.getRequestURI(),
                 ex.getMostSpecificCause().getMessage());
         return construire(HttpStatus.CONFLICT,
-                "Opération refusée : " + ex.getMostSpecificCause().getMessage(),
-                request, null);
+                "Opération refusée : elle viole une règle d'intégrité des données", req, null);
     }
+
     // ==================== 500 ====================
 
     @ExceptionHandler(Exception.class)

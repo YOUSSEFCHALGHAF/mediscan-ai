@@ -68,6 +68,11 @@ export const PATIENT_ROUTES: Routes = [
         loadComponent: pageAVenir,
         data: { titre: 'Partage avec un médecin', etape: 19, icone: 'share' },
       },
+      {
+        path: 'scanner',
+        title: 'Scanner un médicament - MediScan AI',
+        loadComponent: () => import('./scanner/scanner.component').then((m) => m.ScannerComponent),
+      },
     ],
   },
 ];

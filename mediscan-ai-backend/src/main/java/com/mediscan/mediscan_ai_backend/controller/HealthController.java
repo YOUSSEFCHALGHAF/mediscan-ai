@@ -38,7 +38,7 @@ public class HealthController {
         Map<String, Object> reponse = new LinkedHashMap<>();
         reponse.put("status", "UP");
         reponse.put("application", "MediaScan AI Backend");
-        reponse.put("database", baseConnectee ? "CONNECTÉE" : "INDISPONIBLE");
+        reponse.put("database", baseConnectee ? "CONNECTEE" : "INDISPONIBLE");
         reponse.put("timestamp", Instant.now().toString());
 
         log.debug("Health check appelé - base : {}", reponse.get("database"));

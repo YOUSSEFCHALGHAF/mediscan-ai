@@ -1,0 +1,139 @@
+<h1 class="titre-page">Scanner un médicament</h1>
+
+@switch (etape()) {
+  <!-- ==================== 1. CHOIX ==================== -->
+  @case ('choix') {
+    <mat-button-toggle-group
+      class="modes"
+      [value]="mode()"
+      (change)="mode.set($event.value)"
+      aria-label="Mode de capture"
+    >
+      <mat-button-toggle value="fichier"><mat-icon>upload_file</mat-icon> Importer une photo</mat-button-toggle>
+      @if (cameraPossible) {
+        <mat-button-toggle value="webcam"><mat-icon>videocam</mat-icon> Utiliser la caméra</mat-button-toggle>
+      }
+    </mat-button-toggle-group>
+
+    @if (preparation()) {
+      <mat-card appearance="outlined" class="carte">
+        <mat-card-content class="preparation">
+          <mat-progress-bar mode="indeterminate" />
+          <p>Préparation de l'image (redimensionnement et compression)…</p>
+        </mat-card-content>
+      </mat-card>
+    } @else if (mode() === 'fichier') {
+      <div
+        class="zone-depot"
+        [class.survol]="survol()"
+        (dragover)="surSurvol($event, true)"
+        (dragleave)="surSurvol($event, false)"
+        (drop)="surDepot($event)"
+      >
+        <mat-icon class="icone-depot">add_photo_alternate</mat-icon>
+        <p class="titre-zone">Glissez-déposez la photo de la boîte ici</p>
+        <p class="texte-secondaire">ou</p>
+        <div class="boutons-zone">
+          <button mat-flat-button type="button" (click)="selecteurPhoto.click()">
+            <mat-icon>photo_camera</mat-icon>
+            Prendre une photo
+          </button>
+          <button mat-stroked-button type="button" (click)="selecteurFichier.click()">
+            <mat-icon>folder_open</mat-icon>
+            Choisir un fichier
+          </button>
+        </div>
+        <p class="texte-secondaire formats">JPEG, PNG ou WebP · 20 Mo maximum</p>
+
+        <!-- Champs cachés : "capture" ouvre directement l'appareil photo sur smartphone -->
+        <input #selecteurPhoto type="file" accept="image/*" capture="environment" hidden (change)="surSelectionFichier($event)" />
+        <input #selecteurFichier type="file" accept="image/jpeg,image/png,image/webp" hidden (change)="surSelectionFichier($event)" />
+      </div>
+    } @else {
+      <app-capture-webcam (photoPrise)="surPhotoWebcam($event)" />
+    }
+
+    <mat-card appearance="outlined" class="conseils">
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="avatar">tips_and_updates</mat-icon>
+        <mat-card-title>Pour une reconnaissance réussie</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <ul>
+          <li>Posez la boîte à plat, dans un endroit <strong>bien éclairé</strong>, sans reflet.</li>
+          <li>Cadrez la face où figurent le <strong>nom</strong> et le <strong>dosage</strong>.</li>
+          <li>Si possible, prenez aussi le côté avec le <strong>numéro de lot</strong> et la <strong>date d'expiration</strong>.</li>
+          <li>Évitez les photos floues : tenez l'appareil immobile une seconde.</li>
+        </ul>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- ==================== 2. APERÇU ==================== -->
+  @case ('apercu') {
+    <mat-card appearance="outlined" class="carte">
+      <img [src]="apercuUrl()" alt="Aperçu de la photo du médicament" class="apercu" />
+      <mat-card-content>
+        <p class="texte-secondaire">Image prête : {{ tailleImage() }} (compressée, métadonnées supprimées).</p>
+        @if (erreur()) {
+          <p class="bandeau-erreur" role="alert"><mat-icon>error</mat-icon> {{ erreur() }}</p>
+        }
+        <p>Le nom et le dosage sont-ils bien lisibles ?</p>
+      </mat-card-content>
+      <mat-card-actions class="actions">
+        <button mat-button type="button" (click)="recommencer()">
+          <mat-icon>replay</mat-icon>
+          Reprendre la photo
+        </button>
+        <button mat-flat-button type="button" (click)="envoyer()">
+          <mat-icon>send</mat-icon>
+          {{ erreur() ? 'Réessayer l\'envoi' : 'Analyser ce médicament' }}
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  }
+
+  <!-- ==================== 3. ENVOI ==================== -->
+  @case ('envoi') {
+    <mat-card appearance="outlined" class="carte">
+      <img [src]="apercuUrl()" alt="" class="apercu attenue" />
+      <mat-card-content class="envoi">
+        @if (progression() < 100) {
+          <p>Envoi de l'image… {{ progression() }} %</p>
+          <mat-progress-bar mode="determinate" [value]="progression()" aria-label="Progression de l'envoi" />
+        } @else {
+          <p>Image reçue, enregistrement en cours…</p>
+          <mat-progress-bar mode="indeterminate" aria-label="Enregistrement en cours" />
+        }
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- ==================== 4. TERMINÉ ==================== -->
+  @case ('termine') {
+    @if (resultat(); as scan) {
+      <mat-card appearance="outlined" class="carte">
+        <mat-card-header>
+          <mat-icon mat-card-avatar class="avatar succes">check_circle</mat-icon>
+          <mat-card-title>Photo enregistrée</mat-card-title>
+          <mat-card-subtitle>Scan n° {{ scan.id }} · {{ scan.dateScan | date: 'dd/MM/yyyy à HH:mm' }}</mat-card-subtitle>
+        </mat-card-header>
+        <img [src]="apercuUrl()" alt="Photo enregistrée" class="apercu" />
+        <mat-card-content>
+          <p class="statut"><mat-icon>hourglass_top</mat-icon> Statut : analyse en attente</p>
+          <p class="texte-secondaire">
+            La photo est enregistrée de façon sécurisée. La reconnaissance automatique du médicament
+            (OCR et intelligence artificielle) sera branchée à l'étape 14.
+          </p>
+        </mat-card-content>
+        <mat-card-actions class="actions">
+          <a mat-button routerLink="../historique">Voir l'historique</a>
+          <button mat-flat-button type="button" (click)="recommencer()">
+            <mat-icon>add_a_photo</mat-icon>
+            Scanner un autre médicament
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    }
+  }
+}
