@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 
+import { modificationsNonEnregistreesGuard } from '../core/guards/modifications.guard';
 import { EntreeMenu, EspaceLayoutComponent } from '../shared/layouts/espace-layout/espace-layout.component';
 
 /** Menu latéral de l'espace patient. */
@@ -40,8 +41,8 @@ export const PATIENT_ROUTES: Routes = [
       {
         path: 'anamnese',
         title: 'Mon anamnèse - MediScan AI',
-        loadComponent: pageAVenir,
-        data: { titre: 'Mon anamnèse', etape: 12, icone: 'assignment' },
+        loadComponent: () => import('./anamnese/anamnese.component').then((m) => m.AnamneseComponent),
+        canDeactivate: [modificationsNonEnregistreesGuard],
       },
       {
         path: 'scanner',

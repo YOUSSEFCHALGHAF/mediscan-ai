@@ -1,0 +1,13 @@
+:host {
+  display: block;
+}
+
+.champ {
+  width: 100%;
+}
+
+.alerte {
+  --mat-chip-elevated-container-color: var(--mat-sys-error-container);
+  --mat-chip-label-text-color: var(--mat-sys-on-error-container);
+  --mat-chip-with-trailing-icon-trailing-icon-color: var(--mat-sys-on-error-container);
+}

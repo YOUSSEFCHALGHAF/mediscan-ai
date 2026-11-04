@@ -1,0 +1,32 @@
+<mat-form-field appearance="outline" class="champ">
+  <mat-label>{{ libelle() }}</mat-label>
+  <mat-chip-grid #grille [disabled]="desactive()" [attr.aria-label]="libelle()">
+    @for (valeur of valeurs(); track valeur) {
+      <mat-chip-row (removed)="retirer(valeur)" [class.alerte]="style() === 'alerte'">
+        {{ valeur }}
+        <button matChipRemove type="button" [attr.aria-label]="'Retirer ' + valeur">
+          <mat-icon>cancel</mat-icon>
+        </button>
+      </mat-chip-row>
+    }
+    <input
+      #champ
+      [placeholder]="placeholder()"
+      [matChipInputFor]="grille"
+      [matChipInputSeparatorKeyCodes]="separateurs"
+      [matChipInputAddOnBlur]="false"
+      (matChipInputTokenEnd)="surFinSaisie($event)"
+      [matAutocomplete]="listeSuggestions"
+      (input)="surFrappe(champ.value)"
+      (blur)="surContact()"
+    />
+  </mat-chip-grid>
+  <mat-autocomplete #listeSuggestions="matAutocomplete" (optionSelected)="surSelection($event, champ)">
+    @for (s of suggestionsFiltrees(); track s) {
+      <mat-option [value]="s">{{ s }}</mat-option>
+    }
+  </mat-autocomplete>
+  @if (aide()) {
+    <mat-hint>{{ aide() }}</mat-hint>
+  }
+</mat-form-field>

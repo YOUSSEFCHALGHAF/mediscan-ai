@@ -1,0 +1,104 @@
+.entete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+
+  .titre-page {
+    margin-bottom: 4px;
+  }
+}
+
+.sous-titre {
+  margin: 0 0 16px;
+}
+
+.etapes {
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 12px;
+}
+
+.consigne {
+  margin: 8px 0 16px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.navigation {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.habitudes {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.question {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  span {
+    font: var(--mat-sys-title-small);
+  }
+
+  mat-button-toggle-group {
+    flex-wrap: wrap;
+    width: fit-content;
+    max-width: 100%;
+  }
+}
+
+.recapitulatif {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) 1fr;
+  gap: 12px 24px;
+  margin: 8px 0;
+
+  dt {
+    font: var(--mat-sys-title-small);
+    color: var(--mat-sys-primary);
+  }
+
+  dd {
+    margin: 0;
+    white-space: pre-line;
+  }
+}
+
+.chip-alerte {
+  --mat-chip-elevated-container-color: var(--mat-sys-error-container);
+  --mat-chip-label-text-color: var(--mat-sys-on-error-container);
+}
+
+.confidentialite {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bandeau-erreur {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+}
+
+/* Smartphone : récapitulatif sur une colonne */
+@media (max-width: 600px) {
+  .recapitulatif {
+    grid-template-columns: 1fr;
+    gap: 4px;
+
+    dd {
+      margin-bottom: 12px;
+    }
+  }
+}

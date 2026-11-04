@@ -1,0 +1,199 @@
+<div class="entete">
+  <div>
+    <h1 class="titre-page">Mon anamnèse</h1>
+    <p class="texte-secondaire sous-titre">
+      @if (derniereMaj(); as maj) {
+        Dernière mise à jour le {{ maj | date: 'd MMMM y à HH:mm' }}
+      } @else {
+        Renseignez votre historique médical : il permet de détecter les interactions médicamenteuses.
+      }
+    </p>
+  </div>
+  @if (form.dirty) {
+    <button mat-flat-button type="button" (click)="enregistrer()" [disabled]="enregistrement()">
+      <mat-icon>save</mat-icon>
+      Enregistrer
+    </button>
+  }
+</div>
+
+@if (chargement()) {
+  <mat-progress-bar mode="indeterminate" />
+} @else {
+  @if (erreur()) {
+    <p class="bandeau-erreur" role="alert"><mat-icon>error</mat-icon> {{ erreur() }}</p>
+  }
+
+  <form [formGroup]="form" novalidate>
+    <mat-stepper
+      #etapes
+      [orientation]="estMobile() ? 'vertical' : 'horizontal'"
+      [linear]="false"
+      labelPosition="bottom"
+      class="etapes"
+    >
+      <!-- ===== 1. Antécédents ===== -->
+      <mat-step label="Antécédents" [hasError]="form.controls.antecedents.invalid" errorMessage="Texte trop long">
+        <p class="consigne">
+          Maladies passées, opérations, hospitalisations, antécédents familiaux importants.
+        </p>
+        <mat-form-field appearance="outline" class="pleine-largeur">
+          <mat-label>Antécédents médicaux et chirurgicaux</mat-label>
+          <textarea
+            matInput
+            formControlName="antecedents"
+            rows="6"
+            placeholder="Ex. Appendicectomie (2012), infarctus du myocarde (2019)..."
+          ></textarea>
+          <mat-hint align="end">{{ form.controls.antecedents.value.length }} / 5000</mat-hint>
+          <mat-error>{{ messageChamp(form.controls.antecedents) }}</mat-error>
+        </mat-form-field>
+        <div class="navigation">
+          <span></span>
+          <button mat-flat-button matStepperNext type="button">Suivant</button>
+        </div>
+      </mat-step>
+
+      <!-- ===== 2. Allergies ===== -->
+      <mat-step label="Allergies">
+        <p class="consigne">
+          Médicaments, aliments ou substances auxquels vous êtes allergique.
+          <strong>Information essentielle</strong> pour la détection des contre-indications.
+        </p>
+        <app-champ-pastilles
+          formControlName="allergies"
+          libelle="Mes allergies"
+          placeholder="Ex. pénicilline, puis Entrée"
+          aide="Laissez vide si vous n'avez aucune allergie connue."
+          style="alerte"
+          [suggestions]="suggestionsAllergies"
+        />
+        <div class="navigation">
+          <button mat-button matStepperPrevious type="button">Précédent</button>
+          <button mat-flat-button matStepperNext type="button">Suivant</button>
+        </div>
+      </mat-step>
+
+      <!-- ===== 3. Pathologies chroniques ===== -->
+      <mat-step label="Pathologies">
+        <p class="consigne">Maladies de longue durée pour lesquelles vous êtes suivi(e).</p>
+        <app-champ-pastilles
+          formControlName="pathologies"
+          libelle="Mes pathologies chroniques"
+          placeholder="Ex. asthme, puis Entrée"
+          [suggestions]="suggestionsPathologies"
+        />
+        <div class="navigation">
+          <button mat-button matStepperPrevious type="button">Précédent</button>
+          <button mat-flat-button matStepperNext type="button">Suivant</button>
+        </div>
+      </mat-step>
+
+      <!-- ===== 4. Traitements en cours ===== -->
+      <mat-step label="Traitements">
+        <p class="consigne">
+          Médicaments que vous prenez actuellement. Tapez le nom de la boîte (ex. « Doliprane ») :
+          la substance active correspondante vous sera proposée.
+        </p>
+        <app-champ-pastilles
+          formControlName="traitements"
+          libelle="Mes traitements en cours"
+          placeholder="Nom du médicament..."
+          aide="Les suggestions proviennent de la base médicamenteuse MediScan."
+          [suggestions]="suggestionsTraitements()"
+          (saisieChange)="rechercherTraitement($event)"
+        />
+        <div class="navigation">
+          <button mat-button matStepperPrevious type="button">Précédent</button>
+          <button mat-flat-button matStepperNext type="button">Suivant</button>
+        </div>
+      </mat-step>
+
+      <!-- ===== 5. Habitudes de vie ===== -->
+      <mat-step label="Habitudes">
+        <div class="habitudes" formGroupName="habitudes">
+          <div class="question">
+            <span id="q-tabac">Tabac</span>
+            <mat-button-toggle-group formControlName="tabac" aria-labelledby="q-tabac">
+              @for (o of optionsTabac; track o) {
+                <mat-button-toggle [value]="o">{{ libellesTabac[o] }}</mat-button-toggle>
+              }
+            </mat-button-toggle-group>
+          </div>
+          <div class="question">
+            <span id="q-alcool">Consommation d'alcool</span>
+            <mat-button-toggle-group formControlName="alcool" aria-labelledby="q-alcool">
+              @for (o of optionsAlcool; track o) {
+                <mat-button-toggle [value]="o">{{ libellesAlcool[o] }}</mat-button-toggle>
+              }
+            </mat-button-toggle-group>
+          </div>
+          <div class="question">
+            <span id="q-activite">Activité physique</span>
+            <mat-button-toggle-group formControlName="activite" aria-labelledby="q-activite">
+              @for (o of optionsActivite; track o) {
+                <mat-button-toggle [value]="o">{{ libellesActivite[o] }}</mat-button-toggle>
+              }
+            </mat-button-toggle-group>
+          </div>
+          <mat-form-field appearance="outline" class="pleine-largeur">
+            <mat-label>Remarques (alimentation, sommeil, arrêt du tabac...)</mat-label>
+            <textarea matInput formControlName="remarques" rows="3"></textarea>
+            <mat-error>{{ messageChamp(form.controls.habitudes.controls.remarques) }}</mat-error>
+          </mat-form-field>
+        </div>
+        <div class="navigation">
+          <button mat-button matStepperPrevious type="button">Précédent</button>
+          <button mat-flat-button matStepperNext type="button">Voir le récapitulatif</button>
+        </div>
+      </mat-step>
+
+      <!-- ===== 6. Récapitulatif ===== -->
+      <mat-step label="Récapitulatif">
+        @let v = valeur();
+        <dl class="recapitulatif">
+          <dt>Antécédents</dt>
+          <dd>{{ v.antecedents || 'Non renseignés' }}</dd>
+
+          <dt>Allergies</dt>
+          <dd>
+            @if (v.allergies.length) {
+              <mat-chip-set>
+                @for (a of v.allergies; track a) { <mat-chip class="chip-alerte">{{ a }}</mat-chip> }
+              </mat-chip-set>
+            } @else {
+              Aucune allergie connue
+            }
+          </dd>
+
+          <dt>Pathologies chroniques</dt>
+          <dd>{{ v.pathologies.length ? v.pathologies.join(', ') : 'Aucune' }}</dd>
+
+          <dt>Traitements en cours</dt>
+          <dd>{{ v.traitements.length ? v.traitements.join(', ') : 'Aucun' }}</dd>
+
+          <dt>Habitudes de vie</dt>
+          <dd>
+            Tabac : {{ v.habitudes.tabac ? libellesTabac[v.habitudes.tabac] : 'non renseigné' }}<br />
+            Alcool : {{ v.habitudes.alcool ? libellesAlcool[v.habitudes.alcool] : 'non renseigné' }}<br />
+            Activité physique : {{ v.habitudes.activite ? libellesActivite[v.habitudes.activite] : 'non renseignée' }}
+            @if (v.habitudes.remarques) { <br />Remarques : {{ v.habitudes.remarques }} }
+          </dd>
+        </dl>
+
+        <p class="texte-secondaire confidentialite">
+          <mat-icon>lock</mat-icon>
+          Ces informations ne sont visibles par un médecin que si vous les partagez avec lui.
+        </p>
+
+        <div class="navigation">
+          <button mat-button matStepperPrevious type="button">Précédent</button>
+          <button mat-flat-button type="button" (click)="enregistrer()" [disabled]="enregistrement() || form.pristine">
+            <mat-icon>save</mat-icon>
+            {{ enregistrement() ? 'Enregistrement…' : form.pristine ? 'Déjà enregistrée' : 'Enregistrer mon anamnèse' }}
+          </button>
+        </div>
+      </mat-step>
+    </mat-stepper>
+  </form>
+}
