@@ -6,7 +6,7 @@ export const environment = {
   production: false,
   nomApplication: 'MediScan AI',
   /** URL de l'API Spring Boot (doit correspondre à app.cors.allowed-origins côté backend). */
-  apiUrl: 'http://localhost:8081/api',
+  apiUrl: 'http://192.168.3.143:8081/api',
   /** Configuration Firebase Cloud Messaging (notifications) : remplie à l'étape 17. */
   firebase: {
     apiKey: '',
