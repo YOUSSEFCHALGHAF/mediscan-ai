@@ -46,10 +46,11 @@ export const PATIENT_ROUTES: Routes = [
       },
       {
         path: 'scanner',
-        title: 'Scanner un médicament - MediScan AI',
-        loadComponent: pageAVenir,
-        data: { titre: 'Scanner un médicament', etape: 13, icone: 'photo_camera' },
-      },
+        loadComponent: () => import('./scanner/scanner.component')
+        .then(m => m.ScannerComponent),
+        title: 'Scanner un médicament - MediScan AI'
+        },
+
       {
         path: 'historique',
         title: 'Historique - MediScan AI',
@@ -68,11 +69,7 @@ export const PATIENT_ROUTES: Routes = [
         loadComponent: pageAVenir,
         data: { titre: 'Partage avec un médecin', etape: 19, icone: 'share' },
       },
-      {
-        path: 'scanner',
-        title: 'Scanner un médicament - MediScan AI',
-        loadComponent: () => import('./scanner/scanner.component').then((m) => m.ScannerComponent),
-      },
+
     ],
   },
 ];
