@@ -54,8 +54,13 @@ export const PATIENT_ROUTES: Routes = [
       {
         path: 'historique',
         title: 'Historique - MediScan AI',
-        loadComponent: pageAVenir,
-        data: { titre: 'Historique des scans', etape: 15, icone: 'history' },
+        loadComponent: () => import('./historique/historique.component').then((m) => m.HistoriqueComponent),
+      },
+      {
+        path: 'historique/:scanId',
+        title: 'Détail du scan - MediScan AI',
+        loadComponent: () =>
+          import('./historique/detail-scan/detail-scan.component').then((m) => m.DetailScanComponent),
       },
       {
         path: 'rappels',

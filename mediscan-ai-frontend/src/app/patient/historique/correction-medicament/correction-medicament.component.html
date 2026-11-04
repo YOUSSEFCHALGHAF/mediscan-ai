@@ -1,0 +1,40 @@
+<h2 mat-dialog-title>Quel est ce médicament ?</h2>
+
+<mat-dialog-content>
+  @if (donnees.scan.texteExtrait; as texte) {
+    <p class="texte-lu">
+      <mat-icon>text_snippet</mat-icon>
+      <span>Texte lu sur la photo : <em>{{ texte.length > 120 ? (texte.slice(0, 120) + '…') : texte }}</em></span>
+    </p>
+  }
+
+  <mat-form-field appearance="outline" class="champ">
+    <mat-label>Nom du médicament ou substance active</mat-label>
+    <mat-icon matPrefix>search</mat-icon>
+    <input matInput [formControl]="recherche" [matAutocomplete]="liste" placeholder="Ex. Clamoxyl, amoxicilline…" cdkFocusInitial />
+    <mat-autocomplete #liste="matAutocomplete" [displayWith]="afficher" (optionSelected)="choisir($event)">
+      @for (m of resultats(); track m.id) {
+        <mat-option [value]="m">
+          <strong>{{ m.nomCommercial }}</strong> {{ m.dosage }}
+          <span class="dci">· {{ m.dci }}</span>
+        </mat-option>
+      }
+    </mat-autocomplete>
+    <mat-hint>Tapez au moins 2 lettres, puis choisissez dans la liste.</mat-hint>
+  </mat-form-field>
+
+  @if (selection(); as m) {
+    <div class="choix" role="status">
+      <mat-icon>check_circle</mat-icon>
+      <div>
+        <strong>{{ m.nomCommercial }} {{ m.dosage }}</strong>
+        <span>{{ m.dci }}@if (m.formeGalenique) { · {{ m.formeGalenique }} }</span>
+      </div>
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" mat-dialog-close>Annuler</button>
+  <button mat-flat-button type="button" [disabled]="!selection()" (click)="confirmer()">Confirmer ce médicament</button>
+</mat-dialog-actions>

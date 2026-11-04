@@ -1,0 +1,49 @@
+.retour {
+  margin-bottom: 8px;
+}
+
+.disposition {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) 2fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .disposition {
+    grid-template-columns: 1fr;
+  }
+}
+
+.carte-photo {
+  overflow: hidden;
+}
+
+.photo {
+  aspect-ratio: 4 / 3;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 16px 16px;
+}
+
+.espace {
+  flex: 1;
+}
+
+.danger {
+  color: var(--mat-sys-error);
+}
+
+.bandeau-erreur {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+}

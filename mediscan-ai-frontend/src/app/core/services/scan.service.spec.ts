@@ -32,7 +32,23 @@ describe('ScanService', () => {
     expect(evenements).toContain(HttpEventType.UploadProgress);
     expect(evenements).toContain(HttpEventType.Response);
   });
+  it('envoie la correction, l\'ajout aux traitements et la suppression aux bonnes adresses', () => {
+    service.corrigerMedicament(4, 6).subscribe();
+    const correction = http.expectOne(`${environment.apiUrl}/patient/scans/4/medicament`);
+    expect(correction.request.method).toBe('PUT');
+    expect(correction.request.body).toEqual({ medicamentId: 6 });
+    correction.flush({});
 
+    service.ajouterAuxTraitements(2).subscribe();
+    const ajout = http.expectOne(`${environment.apiUrl}/patient/scans/2/traitement`);
+    expect(ajout.request.method).toBe('POST');
+    ajout.flush({});
+
+    service.supprimer(2).subscribe();
+    const suppression = http.expectOne(`${environment.apiUrl}/patient/scans/2`);
+    expect(suppression.request.method).toBe('DELETE');
+    suppression.flush(null, { status: 204, statusText: 'No Content' });
+  });
   it('télécharge l\'image d\'un scan sous forme de Blob', () => {
     service.getImage(7).subscribe((b) => expect(b).toBeInstanceOf(Blob));
     const req = http.expectOne(`${environment.apiUrl}/patient/scans/7/image`);

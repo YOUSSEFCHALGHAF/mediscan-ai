@@ -125,7 +125,10 @@
             <app-resultat-scan [scan]="scan" [medicament]="ficheMedicament()" />
           </mat-card-content>
           <mat-card-actions class="actions">
-            <a mat-button routerLink="../historique">Voir l'historique</a>
+            <a mat-button [routerLink]="['../historique', scan.id]">
+              <mat-icon>tune</mat-icon>
+              {{ scan.statut === 'TERMINE' ? 'Ajouter à mes traitements…' : 'Corriger le médicament' }}
+            </a>
             <button mat-flat-button type="button" (click)="recommencer()">
               <mat-icon>add_a_photo</mat-icon>
               {{ scan.statut === 'TERMINE' ? 'Scanner un autre médicament' : 'Reprendre la photo' }}

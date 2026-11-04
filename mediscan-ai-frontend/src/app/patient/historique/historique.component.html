@@ -1,0 +1,61 @@
+<div class="entete">
+  <h1 class="titre-page">Historique des scans</h1>
+  <a mat-flat-button routerLink="../scanner">
+    <mat-icon>add_a_photo</mat-icon>
+    Nouveau scan
+  </a>
+</div>
+
+@if (chargement()) {
+  <mat-progress-bar mode="indeterminate" />
+} @else if (erreur()) {
+  <p class="bandeau-erreur" role="alert"><mat-icon>error</mat-icon> {{ erreur() }}</p>
+} @else if (scans().length === 0) {
+  <div class="vide">
+    <mat-icon>photo_camera</mat-icon>
+    <p>Vous n'avez encore scanné aucun médicament.</p>
+    <a mat-flat-button routerLink="../scanner">Scanner mon premier médicament</a>
+  </div>
+} @else {
+  <mat-chip-listbox
+    class="filtres"
+    aria-label="Filtrer par statut"
+    [value]="filtre()"
+    (change)="choisirFiltre($event.value)"
+  >
+    @for (f of filtres; track f.valeur) {
+      <mat-chip-option [value]="f.valeur" [selectable]="filtre() !== f.valeur">
+        {{ f.libelle }} ({{ compteurs()[f.valeur] }})
+      </mat-chip-option>
+    }
+  </mat-chip-listbox>
+
+  @if (scansFiltres().length === 0) {
+    <p class="texte-secondaire">Aucun scan dans cette catégorie.</p>
+  }
+
+  <ul class="grille" aria-label="Liste des scans">
+    @for (scan of scansFiltres(); track scan.id) {
+      @let a = affichageStatut[scan.statut];
+      @let expiration = etatExpiration(scan.dateExpiration);
+      <li>
+        <a class="carte-scan" [routerLink]="[scan.id]">
+          <app-image-scan class="miniature" [scanId]="scan.id" [alt]="scan.medicament?.nomCommercial ?? 'Médicament non identifié'" />
+          <div class="infos">
+            <strong>{{ scan.medicament ? scan.medicament.nomCommercial + ' ' + (scan.medicament.dosage ?? '') : 'Médicament non identifié' }}</strong>
+            <span class="texte-secondaire">{{ scan.dateScan | date: 'd MMM y, HH:mm' }}</span>
+            <span class="badges">
+              <span class="statut {{ a.classe }}"><mat-icon>{{ a.icone }}</mat-icon>{{ a.libelle }}</span>
+              @if (expiration === 'perime') {
+                <span class="statut echec"><mat-icon>warning</mat-icon>Périmé</span>
+              } @else if (expiration === 'bientot') {
+                <span class="statut attention"><mat-icon>schedule</mat-icon>Expire bientôt</span>
+              }
+            </span>
+          </div>
+          <mat-icon class="fleche" aria-hidden="true">chevron_right</mat-icon>
+        </a>
+      </li>
+    }
+  </ul>
+}

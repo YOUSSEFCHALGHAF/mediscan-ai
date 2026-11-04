@@ -1,0 +1,49 @@
+<a mat-button routerLink=".." class="retour">
+  <mat-icon>arrow_back</mat-icon>
+  Historique
+</a>
+
+@if (chargement()) {
+  <mat-progress-bar mode="indeterminate" />
+} @else if (erreur()) {
+  <p class="bandeau-erreur" role="alert"><mat-icon>error</mat-icon> {{ erreur() }}</p>
+} @else if (scan(); as s) {
+  <h1 class="titre-page">Scan du {{ s.dateScan | date: "d MMMM y 'à' HH:mm" }}</h1>
+
+  <div class="disposition">
+    <mat-card appearance="outlined" class="carte-photo">
+      <app-image-scan class="photo" [scanId]="s.id" [alt]="'Photo du scan n° ' + s.id" />
+    </mat-card>
+
+    <mat-card appearance="outlined">
+      <mat-card-content>
+        <app-resultat-scan [scan]="s" [medicament]="fiche()" />
+      </mat-card-content>
+
+      <mat-card-actions class="actions">
+        @if (s.statut !== 'TERMINE') {
+          <button mat-flat-button type="button" (click)="corriger()" [disabled]="actionEnCours()">
+            <mat-icon>edit</mat-icon>
+            Indiquer le bon médicament
+          </button>
+        }
+        @if (s.medicament) {
+          <button mat-stroked-button type="button" (click)="ajouterAuxTraitements()" [disabled]="actionEnCours()">
+            <mat-icon>playlist_add</mat-icon>
+            Ajouter à mes traitements
+          </button>
+        }
+        @if (s.statut === 'TERMINE') {
+          <button mat-button type="button" (click)="corriger()" [disabled]="actionEnCours()">
+            Ce n'est pas le bon médicament ?
+          </button>
+        }
+        <span class="espace"></span>
+        <button mat-button type="button" class="danger" (click)="supprimer()" [disabled]="actionEnCours()">
+          <mat-icon>delete</mat-icon>
+          Supprimer
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+}

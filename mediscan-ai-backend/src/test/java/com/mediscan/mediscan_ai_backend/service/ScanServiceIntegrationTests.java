@@ -1,10 +1,13 @@
 package com.mediscan.mediscan_ai_backend.service;
 
 
+import com.mediscan.mediscan_ai_backend.dto.response.AjoutTraitementResponse;
 import com.mediscan.mediscan_ai_backend.dto.response.ScanResponse;
 import com.mediscan.mediscan_ai_backend.entity.enums.StatutScan;
+import com.mediscan.mediscan_ai_backend.exception.RequeteInvalideException;
 import com.mediscan.mediscan_ai_backend.exception.ResourceNotFoundException;
 import com.mediscan.mediscan_ai_backend.ia.MoteurOcr;
+import com.mediscan.mediscan_ai_backend.repository.ScanMedicamentRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,8 +29,8 @@ import static org.mockito.Mockito.when;
 
 /**
  * Prérequis : database/02_donnees_test.sql exécuté.
- * Le moteur OCR est SIMULÉ (@MockitoBean) : on contrôle exactement le texte "lu",
- * ce qui permet de tester toute la chaîne (analyse, base, statut) sans dépendre de Tesseract.
+ * Le moteur OCR est SIMULÉ (@MockitoBean) : on contrôle exactement le texte "lu".
+ * Chaque test est annulé à la fin (@Transactional) : la base reste intacte.
  */
 @SpringBootTest(properties = "app.upload.dir=target/uploads-test")
 @Transactional
@@ -35,8 +38,13 @@ class ScanServiceIntegrationTests {
 
     private static final long YASMINE = 3L;
     private static final long MARC = 4L;
+    /** Données de démo : scan n°2 = Advil de Marc ; scan n°4 = scan flou de Yasmine (A_VERIFIER). */
+    private static final long SCAN_ADVIL_MARC = 2L;
+    private static final long SCAN_FLOU_YASMINE = 4L;
+    private static final long CLAMOXYL = 6L;
 
     @Autowired private ScanService scanService;
+    @Autowired private ScanMedicamentRepository scanRepository;
 
     @MockitoBean private MoteurOcr moteurOcr;
 
@@ -50,6 +58,8 @@ class ScanServiceIntegrationTests {
     private void ocrLit(String texte, double confiance) {
         when(moteurOcr.lire(any())).thenReturn(new MoteurOcr.ResultatOcr(texte, confiance));
     }
+
+    // ==================== Analyse (étape 14) ====================
 
     @Test
     @DisplayName("Boîte bien lue : médicament reconnu, lot et expiration enregistrés, statut TERMINE")
@@ -69,7 +79,7 @@ class ScanServiceIntegrationTests {
     @Test
     @DisplayName("Lecture douteuse : médicament proposé mais statut A_VERIFIER")
     void lectureDouteuse() throws IOException {
-        ocrLit("DOLPRXNE", 40.0);   // similarité 0,78 et confiance faible
+        ocrLit("DOLPRXNE", 40.0);
 
         ScanResponse scan = scanService.creerScan(MARC, photo());
 
@@ -112,7 +122,74 @@ class ScanServiceIntegrationTests {
     @Test
     @DisplayName("Image de démonstration absente du disque : 404 propre")
     void imageDeDemoAbsente() {
-        assertThatThrownBy(() -> scanService.image(MARC, 2L))
+        assertThatThrownBy(() -> scanService.image(MARC, SCAN_ADVIL_MARC))
                 .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    // ==================== Correction manuelle (étape 15) ====================
+
+    @Test
+    @DisplayName("Corriger un scan à vérifier : le médicament est enregistré et le statut passe à TERMINE")
+    void correction() {
+        ScanResponse scan = scanService.corrigerMedicament(YASMINE, SCAN_FLOU_YASMINE, CLAMOXYL);
+
+        assertThat(scan.statut()).isEqualTo(StatutScan.TERMINE);
+        assertThat(scan.medicament().nomCommercial()).isEqualTo("Clamoxyl");
+        assertThat(scanRepository.findById(SCAN_FLOU_YASMINE).orElseThrow().getMedicament().getId())
+                .isEqualTo(CLAMOXYL);
+    }
+
+    @Test
+    @DisplayName("Correction refusée sur le scan d'un autre patient, ou avec un médicament inconnu")
+    void correctionRefusee() {
+        assertThatThrownBy(() -> scanService.corrigerMedicament(MARC, SCAN_FLOU_YASMINE, CLAMOXYL))
+                .isInstanceOf(ResourceNotFoundException.class);
+        assertThatThrownBy(() -> scanService.corrigerMedicament(YASMINE, SCAN_FLOU_YASMINE, 999L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Médicament");
+    }
+
+    // ==================== Ajout aux traitements (étape 15) ====================
+
+    @Test
+    @DisplayName("Ajoute la DCI aux traitements en cours, une seule fois")
+    void ajoutAuxTraitements() {
+        AjoutTraitementResponse premier = scanService.ajouterAuxTraitements(MARC, SCAN_ADVIL_MARC);
+
+        assertThat(premier.substance()).isEqualTo("ibuprofène");
+        assertThat(premier.dejaPresent()).isFalse();
+        assertThat(premier.anamnese().traitementsEnCours()).isEqualTo("warfarine, amlodipine, ibuprofène");
+
+        AjoutTraitementResponse second = scanService.ajouterAuxTraitements(MARC, SCAN_ADVIL_MARC);
+        assertThat(second.dejaPresent()).isTrue();
+        assertThat(second.anamnese().traitementsEnCours()).isEqualTo("warfarine, amlodipine, ibuprofène");
+    }
+
+    @Test
+    @DisplayName("Impossible d'ajouter aux traitements un scan sans médicament identifié")
+    void ajoutSansMedicament() {
+        assertThatThrownBy(() -> scanService.ajouterAuxTraitements(YASMINE, SCAN_FLOU_YASMINE))
+                .isInstanceOf(RequeteInvalideException.class);
+    }
+
+    // ==================== Suppression (étape 15) ====================
+
+    @Test
+    @DisplayName("Supprime le scan du patient")
+    void suppression() throws IOException {
+        ocrLit("DOLIPRANE", 90.0);
+        ScanResponse scan = scanService.creerScan(MARC, photo());
+
+        scanService.supprimer(MARC, scan.id());
+
+        assertThat(scanRepository.findById(scan.id())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Un patient ne peut pas supprimer le scan d'un autre")
+    void suppressionRefusee() {
+        assertThatThrownBy(() -> scanService.supprimer(YASMINE, SCAN_ADVIL_MARC))
+                .isInstanceOf(ResourceNotFoundException.class);
+        assertThat(scanRepository.findById(SCAN_ADVIL_MARC)).isPresent();
     }
 }

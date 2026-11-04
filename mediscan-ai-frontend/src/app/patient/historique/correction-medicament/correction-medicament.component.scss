@@ -1,0 +1,38 @@
+.champ {
+  width: 100%;
+}
+
+.texte-lu {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 16px;
+  font: var(--mat-sys-body-small);
+  color: var(--mat-sys-on-surface-variant);
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+}
+
+.dci {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.choix {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--ms-succes) 12%, transparent);
+
+  mat-icon {
+    color: var(--ms-succes);
+  }
+
+  div {
+    display: flex;
+    flex-direction: column;
+  }
+}
