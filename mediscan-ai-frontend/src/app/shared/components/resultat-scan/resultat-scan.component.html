@@ -1,0 +1,92 @@
+@let s = scan();
+@let e = entete();
+
+<div class="entete {{ e.classe }}" role="status">
+  <mat-icon>{{ e.icone }}</mat-icon>
+  <span>{{ e.titre }}</span>
+</div>
+
+<!-- ===== Médicament reconnu ===== -->
+@if (s.medicament; as m) {
+  <section class="medicament">
+    <h2>{{ m.nomCommercial }} <span class="dosage">{{ m.dosage }}</span></h2>
+    <p class="dci">{{ m.dci }}@if (medicament()?.formeGalenique; as forme) { · {{ forme }} }</p>
+
+    @if (medicament(); as fiche) {
+      @if (fiche.posologie) {
+        <div class="rubrique">
+          <mat-icon>schedule</mat-icon>
+          <div><strong>Posologie usuelle</strong><p>{{ fiche.posologie }}</p></div>
+        </div>
+      }
+      @if (contreIndications().length) {
+        <div class="rubrique alerte">
+          <mat-icon>do_not_disturb_on</mat-icon>
+          <div>
+            <strong>Contre-indications</strong>
+            <ul>@for (c of contreIndications(); track c) { <li>{{ c }}</li> }</ul>
+          </div>
+        </div>
+      }
+      @if (interactions().length) {
+        <div class="rubrique">
+          <mat-icon>sync_problem</mat-icon>
+          <div><strong>Interactions connues avec</strong><p>{{ interactions().join(', ') }}</p></div>
+        </div>
+      }
+    }
+  </section>
+} @else if (s.statut === 'A_VERIFIER') {
+  <p class="conseil">
+    Le texte a été lu, mais ne correspond avec certitude à aucun médicament de la base.
+    Reprenez la photo en cadrant bien le nom du médicament, avec un bon éclairage.
+  </p>
+} @else if (s.statut === 'ECHEC') {
+  <p class="conseil">
+    La photo est peut-être floue, trop sombre ou trop éloignée. Posez la boîte à plat, près d'une fenêtre,
+    et cadrez la face où figure le nom.
+  </p>
+}
+
+<!-- ===== Informations lues sur la boîte ===== -->
+@if (s.numeroLot || s.dateExpiration) {
+  <section class="lot">
+    @if (s.numeroLot) {
+      <div><span class="libelle">N° de lot</span><span class="valeur">{{ s.numeroLot }}</span></div>
+    }
+    @if (s.dateExpiration) {
+      <div>
+        <span class="libelle">Expiration</span>
+        <span class="valeur expiration {{ etatExpiration() }}">
+          {{ s.dateExpiration | date: 'MM/yyyy' }}
+          @switch (etatExpiration()) {
+            @case ('perime') { <mat-icon>warning</mat-icon> Périmé : ne pas utiliser }
+            @case ('bientot') { <mat-icon>schedule</mat-icon> Expire bientôt }
+          }
+        </span>
+      </div>
+    }
+  </section>
+}
+
+<!-- ===== Fiabilité de la lecture ===== -->
+@if (s.scoreConfiance !== null) {
+  <div class="confiance">
+    <span>Fiabilité de la lecture : {{ s.scoreConfiance | number: '1.0-0' }} %</span>
+    <mat-progress-bar mode="determinate" [value]="s.scoreConfiance" aria-label="Fiabilité de la lecture" />
+  </div>
+}
+
+@if (s.texteExtrait) {
+  <mat-expansion-panel class="texte-lu">
+    <mat-expansion-panel-header>
+      <mat-panel-title>Texte lu par l'IA</mat-panel-title>
+    </mat-expansion-panel-header>
+    <pre>{{ s.texteExtrait }}</pre>
+  </mat-expansion-panel>
+}
+
+<p class="avertissement">
+  <mat-icon>info</mat-icon>
+  Information indicative issue d'une lecture automatique : elle ne remplace pas la notice ni l'avis d'un professionnel de santé.
+</p>

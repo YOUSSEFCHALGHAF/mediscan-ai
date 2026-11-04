@@ -27,3 +27,23 @@ export function depuisDateIso(texte: string | null | undefined): Date | null {
 export function heureCourte(heure: string | null | undefined): string {
   return heure ? heure.substring(0, 5) : '';
 }
+
+/** État d'une date d'expiration de médicament. */
+export type EtatExpiration = 'perime' | 'bientot' | 'valide';
+
+/**
+ * "perime" si la date est passée, "bientot" si elle arrive dans les 3 mois, sinon "valide".
+ * Renvoie null si la date est inconnue.
+ */
+export function etatExpiration(dateIso: string | null | undefined, aujourdhui = new Date()): EtatExpiration | null {
+  const date = depuisDateIso(dateIso);
+  if (!date) {
+    return null;
+  }
+  const jour = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), aujourdhui.getDate());
+  if (date < jour) {
+    return 'perime';
+  }
+  const dansTroisMois = new Date(jour.getFullYear(), jour.getMonth() + 3, jour.getDate());
+  return date <= dansTroisMois ? 'bientot' : 'valide';
+}

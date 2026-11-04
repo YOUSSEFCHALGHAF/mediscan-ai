@@ -14,8 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * Création des scans de médicaments et accès à leurs images.
- * L'analyse OCR / IA sera ajoutée à l'étape 14, dans creerScan().
+ * Création des scans de médicaments, analyse IA et accès aux images.
  */
 @Slf4j
 @Service
@@ -25,8 +24,12 @@ public class ScanService {
     private final ScanMedicamentRepository scanRepository;
     private final PatientRepository patientRepository;
     private final StockageImageService stockageImage;
+    private final AnalyseScanService analyseScanService;
 
-    /** Enregistre l'image puis crée le scan en base avec le statut EN_COURS. */
+    /**
+     * Enregistre l'image, crée le scan (EN_COURS) puis lance l'analyse IA.
+     * Le statut final (TERMINE, A_VERIFIER ou ECHEC) est enregistré à la fin de la transaction.
+     */
     @Transactional
     public ScanResponse creerScan(Long patientId, MultipartFile image) {
         StockageImageService.ImageStockee stockee = stockageImage.enregistrer(image);
@@ -40,7 +43,9 @@ public class ScanService {
             log.info("Scan {} créé pour le patient {} ({}x{} px)",
                     enregistre.getId(), patientId, stockee.largeur(), stockee.hauteur());
 
-            // ÉTAPE 14 : l'analyse OCR sera lancée ici (texte, médicament, lot, expiration, score).
+            // Analyse IA : prétraitement, OCR, extraction, rapprochement avec la base
+            analyseScanService.analyser(enregistre);
+
             return ScanResponse.from(enregistre);
         } catch (RuntimeException e) {
             // Si la base refuse l'enregistrement, on ne laisse pas d'image orpheline sur le disque

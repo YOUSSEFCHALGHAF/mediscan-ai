@@ -97,14 +97,31 @@
   gap: 8px;
 }
 
-.statut {
+/*.statut {
   display: flex;
   align-items: center;
   gap: 8px;
   font: var(--mat-sys-title-small);
   color: var(--ms-avertissement);
+}*/
+/* Résultat : photo à gauche, analyse à droite (l'une sous l'autre sur mobile) */
+.resultat {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) 2fr;
+  gap: 16px;
+  align-items: start;
 }
 
+@media (max-width: 800px) {
+  .resultat {
+    grid-template-columns: 1fr;
+  }
+}
+
+.icone-ia {
+  vertical-align: middle;
+  color: var(--mat-sys-primary);
+}
 .bandeau-erreur {
   display: flex;
   align-items: center;

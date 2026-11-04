@@ -14,6 +14,7 @@ interface ScannerTeste {
   progression(): number;
   erreur(): string | null;
   resultat(): { id: number } | null;
+  ficheMedicament(): { posologie: string | null } | null;
   preparerFichier(f: File): Promise<void>;
   envoyer(): void;
 }
@@ -60,7 +61,7 @@ describe('ScannerComponent', () => {
     expect(composant().etape()).toBe('apercu');
   });
 
-  it('suit la progression puis affiche le scan créé', async () => {
+  it('suit la progression, affiche le résultat puis charge la fiche du médicament reconnu', async () => {
     await composant().preparerFichier(photo);
     composant().envoyer();
     expect(composant().etape()).toBe('envoi');
@@ -69,9 +70,31 @@ describe('ScannerComponent', () => {
     req.event({ type: HttpEventType.UploadProgress, loaded: 40, total: 100 });
     expect(composant().progression()).toBe(40);
 
-    req.flush({ id: 12, statut: 'EN_COURS', dateScan: '2026-11-04T10:00:00' }, { status: 201, statusText: 'Created' });
+    req.flush(
+      {
+        id: 12, statut: 'TERMINE', dateScan: '2026-11-04T10:00:00', scoreConfiance: 91, numeroLot: '24B117',
+        dateExpiration: '2028-03-31', texteExtrait: 'DOLIPRANE 1000 mg', imageUrl: 'scans/x.jpg',
+        medicament: { id: 1, nomCommercial: 'Doliprane', dci: 'paracétamol', dosage: '1000 mg' },
+      },
+      { status: 201, statusText: 'Created' },
+    );
     expect(composant().etape()).toBe('termine');
     expect(composant().resultat()?.id).toBe(12);
+
+    // Fiche complète du médicament reconnu
+    http.expectOne(`${environment.apiUrl}/medicaments/1`).flush({ id: 1, nomCommercial: 'Doliprane', posologie: '1 cp / 6 h' });
+    expect(composant().ficheMedicament()?.posologie).toBe('1 cp / 6 h');
+  });
+
+  it('ne charge pas de fiche quand le médicament n\'est pas reconnu', async () => {
+    await composant().preparerFichier(photo);
+    composant().envoyer();
+    http.expectOne(`${environment.apiUrl}/patient/scans`).flush(
+      { id: 13, statut: 'A_VERIFIER', dateScan: '2026-11-04T10:00:00', medicament: null, imageUrl: 'scans/y.jpg' },
+      { status: 201, statusText: 'Created' },
+    );
+    expect(composant().etape()).toBe('termine');
+    http.expectNone(`${environment.apiUrl}/medicaments/13`);
   });
 
   it('conserve la photo et affiche l\'erreur si l\'envoi échoue', async () => {

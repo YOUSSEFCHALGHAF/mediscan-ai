@@ -93,7 +93,7 @@
     </mat-card>
   }
 
-  <!-- ==================== 3. ENVOI ==================== -->
+   <!-- ==================== 3. ENVOI + ANALYSE ==================== -->
   @case ('envoi') {
     <mat-card appearance="outlined" class="carte">
       <img [src]="apercuUrl()" alt="" class="apercu attenue" />
@@ -102,15 +102,43 @@
           <p>Envoi de l'image… {{ progression() }} %</p>
           <mat-progress-bar mode="determinate" [value]="progression()" aria-label="Progression de l'envoi" />
         } @else {
-          <p>Image reçue, enregistrement en cours…</p>
-          <mat-progress-bar mode="indeterminate" aria-label="Enregistrement en cours" />
+          <p><mat-icon class="icone-ia">neurology</mat-icon> Analyse par l'IA en cours : lecture du texte et identification du médicament…</p>
+          <mat-progress-bar mode="indeterminate" aria-label="Analyse en cours" />
         }
       </mat-card-content>
     </mat-card>
   }
 
-  <!-- ==================== 4. TERMINÉ ==================== -->
+  <!-- ==================== 4. RÉSULTAT ==================== -->
   @case ('termine') {
+    @if (resultat(); as scan) {
+      <div class="resultat">
+        <mat-card appearance="outlined" class="carte-photo">
+          <img [src]="apercuUrl()" alt="Photo analysée" class="apercu" />
+          <mat-card-content>
+            <p class="texte-secondaire">Scan n° {{ scan.id }} · {{ scan.dateScan | date: 'dd/MM/yyyy à HH:mm' }}</p>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card appearance="outlined" class="carte-resultat">
+          <mat-card-content>
+            <app-resultat-scan [scan]="scan" [medicament]="ficheMedicament()" />
+          </mat-card-content>
+          <mat-card-actions class="actions">
+            <a mat-button routerLink="../historique">Voir l'historique</a>
+            <button mat-flat-button type="button" (click)="recommencer()">
+              <mat-icon>add_a_photo</mat-icon>
+              {{ scan.statut === 'TERMINE' ? 'Scanner un autre médicament' : 'Reprendre la photo' }}
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      </div>
+    }
+  }
+}
+
+  <!-- ==================== 4. TERMINÉ ==================== -->
+  <!--@case ('termine') {
     @if (resultat(); as scan) {
       <mat-card appearance="outlined" class="carte">
         <mat-card-header>
@@ -136,4 +164,4 @@
       </mat-card>
     }
   }
-}
+}-->

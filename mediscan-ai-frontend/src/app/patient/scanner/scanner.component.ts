@@ -8,13 +8,15 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { RouterLink } from '@angular/router';
 
-import { Scan } from '../../core/models';
+import { Medicament, Scan } from '../../core/models';
 import { CompressionImageService } from '../../core/services/compression-image.service';
+import { MedicamentService } from '../../core/services/medicament.service';
 import { MessagesService } from '../../core/services/messages.service';
 import { ScanService } from '../../core/services/scan.service';
 import { cameraDisponible } from '../../core/utils/camera';
 import { messageErreurApi } from '../../core/utils/erreurs-api';
 import { formaterTaille, verifierFichierImage } from '../../core/utils/image';
+import { ResultatScanComponent } from '../../shared/components/resultat-scan/resultat-scan.component';
 import { CaptureWebcamComponent } from './capture-webcam/capture-webcam.component';
 
 type Etape = 'choix' | 'apercu' | 'envoi' | 'termine';
@@ -25,20 +27,21 @@ type Mode = 'fichier' | 'webcam';
  * 1. choix : importer une photo (fichier, glisser-déposer, appareil photo du téléphone) ou webcam ;
  * 2. aperçu : vérifier la photo (compressée à 1600 px) ;
  * 3. envoi : barre de progression ;
- * 4. terminé : scan créé (l'analyse IA sera branchée à l'étape 14).
+ * 4. terminé : résultat de l'analyse IA (médicament reconnu, lot, expiration...).
  */
 @Component({
   selector: 'app-scanner',
   imports: [
     DatePipe, RouterLink,
     MatCardModule, MatButtonModule, MatButtonToggleModule, MatIconModule, MatProgressBarModule,
-    CaptureWebcamComponent,
+    CaptureWebcamComponent, ResultatScanComponent,
   ],
   templateUrl: './scanner.component.html',
   styleUrl: './scanner.component.scss',
 })
 export class ScannerComponent {
   private readonly scanService = inject(ScanService);
+  private readonly medicamentService = inject(MedicamentService);
   private readonly compression = inject(CompressionImageService);
   private readonly messages = inject(MessagesService);
 
@@ -52,6 +55,8 @@ export class ScannerComponent {
   protected readonly progression = signal(0);
   protected readonly erreur = signal<string | null>(null);
   protected readonly resultat = signal<Scan | null>(null);
+  /** Fiche complète du médicament reconnu (posologie, contre-indications...). */
+  protected readonly ficheMedicament = signal<Medicament | null>(null);
 
   private image: Blob | null = null;
 
@@ -132,9 +137,8 @@ export class ScannerComponent {
       next: (evenement) => {
         if (evenement.type === HttpEventType.UploadProgress && evenement.total) {
           this.progression.set(Math.round((100 * evenement.loaded) / evenement.total));
-        } else if (evenement.type === HttpEventType.Response) {
-          this.resultat.set(evenement.body);
-          this.etape.set('termine');
+        } else if (evenement.type === HttpEventType.Response && evenement.body) {
+          this.afficherResultat(evenement.body);
         }
       },
       error: (err: HttpErrorResponse) => {
@@ -148,12 +152,28 @@ export class ScannerComponent {
     });
   }
 
-  // ---------- 4. Recommencer ----------
+  // ---------- 4. Résultat ----------
+
+  private afficherResultat(scan: Scan): void {
+    this.resultat.set(scan);
+    this.ficheMedicament.set(null);
+    this.etape.set('termine');
+    // Médicament reconnu : on charge sa fiche complète (posologie, contre-indications, interactions)
+    if (scan.medicament) {
+      this.medicamentService.getMedicament(scan.medicament.id).subscribe({
+        next: (fiche) => this.ficheMedicament.set(fiche),
+        error: () => this.ficheMedicament.set(null), // le résumé du médicament reste affiché
+      });
+    }
+  }
+
+  // ---------- 5. Recommencer ----------
 
   recommencer(): void {
     this.libererApercu();
     this.image = null;
     this.resultat.set(null);
+    this.ficheMedicament.set(null);
     this.erreur.set(null);
     this.etape.set('choix');
   }
