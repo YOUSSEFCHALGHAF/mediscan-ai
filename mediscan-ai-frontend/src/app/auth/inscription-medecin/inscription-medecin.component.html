@@ -1,0 +1,124 @@
+<div class="centre">
+  <mat-card appearance="outlined" class="carte">
+    <mat-card-header>
+      <mat-icon mat-card-avatar class="avatar">stethoscope</mat-icon>
+      <mat-card-title>Créer un compte médecin</mat-card-title>
+      <mat-card-subtitle>Espace réservé aux professionnels de santé</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      @if (erreur()) {
+        <p class="bandeau-erreur" role="alert">
+          <mat-icon>error</mat-icon>
+          {{ erreur() }}
+        </p>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="sInscrire()" novalidate>
+        <h2 class="section">Identité professionnelle</h2>
+        <div class="grille">
+          <mat-form-field appearance="outline">
+            <mat-label>Prénom</mat-label>
+            <input matInput formControlName="prenom" autocomplete="given-name" required />
+            <mat-error>{{ messageChamp(form.controls.prenom) }}</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Nom</mat-label>
+            <input matInput formControlName="nom" autocomplete="family-name" required />
+            <mat-error>{{ messageChamp(form.controls.nom) }}</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Numéro RPPS</mat-label>
+            <input matInput formControlName="numeroRpps" inputmode="numeric" maxlength="11" required />
+            <mat-hint align="end">{{ form.controls.numeroRpps.value.length }} / 11</mat-hint>
+            <mat-error>{{ messageChamp(form.controls.numeroRpps) }}</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Spécialité</mat-label>
+            <input matInput formControlName="specialite" [matAutocomplete]="listeSpecialites" required />
+            <mat-autocomplete #listeSpecialites="matAutocomplete">
+              @for (s of specialitesFiltrees(); track s) {
+                <mat-option [value]="s">{{ s }}</mat-option>
+              }
+            </mat-autocomplete>
+            <mat-error>{{ messageChamp(form.controls.specialite) }}</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Téléphone professionnel</mat-label>
+            <input matInput type="tel" formControlName="telephone" autocomplete="tel" />
+            <mat-error>{{ messageChamp(form.controls.telephone) }}</mat-error>
+          </mat-form-field>
+        </div>
+
+        <h2 class="section">Identifiants de connexion</h2>
+        <mat-form-field appearance="outline" class="pleine-largeur">
+          <mat-label>Adresse email professionnelle</mat-label>
+          <input matInput type="email" formControlName="email" autocomplete="email" required />
+          <mat-icon matPrefix>mail</mat-icon>
+          <mat-error>{{ messageChamp(form.controls.email) }}</mat-error>
+        </mat-form-field>
+
+        <div class="grille">
+          <mat-form-field appearance="outline">
+            <mat-label>Mot de passe</mat-label>
+            <input
+              matInput
+              [type]="motDePasseMasque() ? 'password' : 'text'"
+              formControlName="motDePasse"
+              autocomplete="new-password"
+              required
+            />
+            <button
+              mat-icon-button
+              matSuffix
+              type="button"
+              (click)="motDePasseMasque.set(!motDePasseMasque())"
+              [attr.aria-label]="motDePasseMasque() ? 'Afficher le mot de passe' : 'Masquer le mot de passe'"
+            >
+              <mat-icon>{{ motDePasseMasque() ? 'visibility' : 'visibility_off' }}</mat-icon>
+            </button>
+            <mat-hint>8 caractères minimum, avec une lettre et un chiffre</mat-hint>
+            <mat-error>{{ messageChamp(form.controls.motDePasse) }}</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Confirmation du mot de passe</mat-label>
+            <input
+              matInput
+              [type]="motDePasseMasque() ? 'password' : 'text'"
+              formControlName="confirmation"
+              autocomplete="new-password"
+              required
+            />
+            <mat-error>{{ messageChamp(form.controls.confirmation) }}</mat-error>
+          </mat-form-field>
+        </div>
+
+        <mat-checkbox formControlName="attestation" class="attestation">
+          J'atteste être un professionnel de santé inscrit au répertoire RPPS et je m'engage à n'accéder
+          qu'aux données des patients qui m'en ont donné l'autorisation.
+        </mat-checkbox>
+        @if (form.controls.attestation.touched && form.controls.attestation.invalid) {
+          <p class="erreur-case" role="alert">Cette attestation est obligatoire.</p>
+        }
+
+        <button mat-flat-button type="submit" class="pleine-largeur bouton" [disabled]="envoiEnCours()">
+          @if (envoiEnCours()) {
+            <mat-progress-spinner mode="indeterminate" diameter="20" />
+          } @else {
+            Créer mon compte médecin
+          }
+        </button>
+      </form>
+
+      <p class="lien">
+        Vous êtes patient ? <a routerLink="/inscription">Créer un compte patient</a> ·
+        <a routerLink="/connexion">Se connecter</a>
+      </p>
+    </mat-card-content>
+  </mat-card>
+</div>

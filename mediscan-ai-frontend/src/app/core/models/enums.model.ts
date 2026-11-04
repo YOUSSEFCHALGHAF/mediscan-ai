@@ -67,3 +67,17 @@ export const LIBELLES_GRAVITE: Record<NiveauGravite, string> = {
   MOYEN: 'Moyenne',
   ELEVE: 'Élevée',
 };
+
+/** Libellés courts des catégories partagées (pastilles, onglets). */
+export const LIBELLES_CATEGORIE: Record<CategoriePartage, string> = {
+  ANAMNESE: 'Anamnèse',
+  SCANS: 'Médicaments',
+  ALERTES: 'Alertes',
+  RAPPELS: 'Rappels',
+};
+
+export const LIBELLES_FREQUENCE: Record<Frequence, string> = {
+  QUOTIDIEN: 'Tous les jours',
+  HEBDOMADAIRE: 'Chaque semaine',
+  PONCTUEL: 'Ponctuel',
+};

@@ -1,0 +1,51 @@
+<h1 class="titre-page">Bonjour Dr {{ auth.utilisateur()?.nom }}</h1>
+
+@if (chargement()) {
+  <mat-progress-bar mode="indeterminate" />
+} @else if (erreur()) {
+  <p class="erreur"><mat-icon>error</mat-icon> {{ erreur() }}</p>
+} @else {
+  <div class="grille-cartes indicateurs">
+    <mat-card appearance="outlined" class="indicateur">
+      <mat-icon>groups</mat-icon>
+      <span class="valeur">{{ patients().length }}</span>
+      <span class="libelle">patient(s) suivi(s)</span>
+    </mat-card>
+    <mat-card appearance="outlined" class="indicateur" [class.danger]="totalAlertes() > 0">
+      <mat-icon>warning</mat-icon>
+      <span class="valeur">{{ totalAlertes() }}</span>
+      <span class="libelle">alerte(s) non traitée(s)</span>
+    </mat-card>
+    <mat-card appearance="outlined" class="indicateur">
+      <mat-icon>notification_important</mat-icon>
+      <span class="valeur">{{ aSurveiller().length }}</span>
+      <span class="libelle">patient(s) à surveiller</span>
+    </mat-card>
+  </div>
+
+  <mat-card appearance="outlined">
+    <mat-card-header>
+      <mat-card-title>Patients à surveiller</mat-card-title>
+      <mat-card-subtitle>Patients ayant des alertes non traitées</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      @if (aSurveiller().length) {
+        <mat-nav-list>
+          @for (p of aSurveiller(); track p.id) {
+            <a mat-list-item [routerLink]="['/medecin/patients', p.id]">
+              <mat-icon matListItemIcon>person</mat-icon>
+              <span matListItemTitle>{{ p.prenom }} {{ p.nom }}</span>
+              <span matListItemLine>{{ p.age !== null ? p.age + ' ans' : 'Âge inconnu' }}</span>
+              <app-pastille-alertes matListItemMeta [nombre]="p.alertesNonTraitees" />
+            </a>
+          }
+        </mat-nav-list>
+      } @else {
+        <p class="texte-secondaire">Aucune alerte en attente. 👍</p>
+      }
+    </mat-card-content>
+    <mat-card-actions>
+      <a mat-button routerLink="/medecin/patients">Voir tous mes patients</a>
+    </mat-card-actions>
+  </mat-card>
+}

@@ -1,0 +1,217 @@
+<a mat-button routerLink="/medecin/patients" class="retour">
+  <mat-icon>arrow_back</mat-icon>
+  Mes patients
+</a>
+
+@if (chargement()) {
+  <mat-progress-bar mode="indeterminate" />
+} @else if (erreur(); as e) {
+  <!-- ===== Accès refusé ou erreur ===== -->
+  <mat-card appearance="outlined" class="carte-erreur">
+    <mat-card-content>
+      @if (e.statut === 403) {
+        <mat-icon class="icone-erreur">lock</mat-icon>
+        <h1>Accès non autorisé</h1>
+        <p>{{ e.message }}</p>
+        <p class="texte-secondaire">
+          Le patient n'a pas partagé ses données avec vous, ou il a révoqué son consentement.
+          Conformément au RGPD, ses données ne peuvent pas être affichées.
+        </p>
+      } @else if (e.statut === 404) {
+        <mat-icon class="icone-erreur">person_off</mat-icon>
+        <h1>Patient introuvable</h1>
+        <p>{{ e.message }}</p>
+      } @else {
+        <mat-icon class="icone-erreur">error</mat-icon>
+        <h1>Erreur</h1>
+        <p>{{ e.message }}</p>
+        <button mat-button type="button" (click)="charger()">Réessayer</button>
+      }
+    </mat-card-content>
+  </mat-card>
+} @else if (fiche(); as f) {
+  <!-- ===== En-tête de la fiche ===== -->
+  <mat-card appearance="outlined" class="entete">
+    <mat-card-content>
+      <div class="identite">
+        <div>
+          <h1>{{ f.prenom }} {{ f.nom }}</h1>
+          <p class="texte-secondaire">
+            @if (f.age !== undefined) { {{ f.age }} ans · }
+            @if (f.sexe) { {{ f.sexe === 'FEMME' ? 'Femme' : f.sexe === 'HOMME' ? 'Homme' : 'Autre' }} · }
+            Groupe sanguin {{ f.groupeSanguin ?? 'inconnu' }}
+          </p>
+          <p class="contact">
+            <mat-icon>mail</mat-icon> {{ f.email }}
+            @if (f.telephone) { <mat-icon>call</mat-icon> {{ f.telephone }} }
+          </p>
+        </div>
+        <div class="consentement">
+          <p><mat-icon>verified_user</mat-icon> Consentement du {{ f.dateConsentement | date: 'dd/MM/yyyy' }}</p>
+          <mat-chip-set aria-label="Données partagées">
+            @for (c of categories(); track c) {
+              <mat-chip>{{ libellesCategorie[c] }}</mat-chip>
+            }
+          </mat-chip-set>
+        </div>
+      </div>
+
+      @if (nbAlertesNonTraitees() > 0) {
+        <p class="bandeau-alerte" role="alert">
+          <mat-icon>warning</mat-icon>
+          {{ nbAlertesNonTraitees() }} alerte(s) médicamenteuse(s) non traitée(s) pour ce patient.
+        </p>
+      }
+    </mat-card-content>
+  </mat-card>
+
+  <!-- ===== Onglets (désactivés si la catégorie n'est pas partagée) ===== -->
+  <mat-tab-group mat-stretch-tabs="false" animationDuration="200ms">
+    <!-- Anamnèse -->
+    <mat-tab [disabled]="!f.anamnese">
+      <ng-template mat-tab-label>
+        <mat-icon class="icone-onglet">{{ f.anamnese ? 'assignment' : 'lock' }}</mat-icon>
+        Anamnèse
+      </ng-template>
+      @if (f.anamnese; as a) {
+        <div class="onglet">
+          @if (!a.complete) {
+            <p class="texte-secondaire">Le patient n'a pas encore renseigné son anamnèse.</p>
+          } @else {
+            <section>
+              <h2>Allergies</h2>
+              @if (allergies().length) {
+                <mat-chip-set>
+                  @for (al of allergies(); track al) {
+                    <mat-chip class="chip-allergie"><mat-icon matChipAvatar>warning</mat-icon>{{ al }}</mat-chip>
+                  }
+                </mat-chip-set>
+              } @else {
+                <p class="texte-secondaire">Aucune allergie connue</p>
+              }
+            </section>
+            <section>
+              <h2>Traitements en cours</h2>
+              @if (traitements().length) {
+                <mat-chip-set>
+                  @for (t of traitements(); track t) {
+                    <mat-chip><mat-icon matChipAvatar>medication</mat-icon>{{ t }}</mat-chip>
+                  }
+                </mat-chip-set>
+              } @else {
+                <p class="texte-secondaire">Aucun traitement déclaré</p>
+              }
+            </section>
+            <section>
+              <h2>Pathologies chroniques</h2>
+              <p>{{ pathologies().length ? pathologies().join(' · ') : 'Aucune déclarée' }}</p>
+            </section>
+            <section>
+              <h2>Antécédents</h2>
+              <p>{{ a.antecedents || 'Non renseignés' }}</p>
+            </section>
+            <section>
+              <h2>Habitudes de vie</h2>
+              <p>{{ a.habitudesVie || 'Non renseignées' }}</p>
+            </section>
+            <p class="texte-secondaire maj">Mise à jour le {{ a.dateMaj | date: 'd MMMM y à HH:mm' }}</p>
+          }
+        </div>
+      }
+    </mat-tab>
+
+    <!-- Médicaments scannés -->
+    <mat-tab [disabled]="!f.scans">
+      <ng-template mat-tab-label>
+        <mat-icon class="icone-onglet">{{ f.scans ? 'medication' : 'lock' }}</mat-icon>
+        Médicaments ({{ f.scans?.length ?? 0 }})
+      </ng-template>
+      @if (f.scans; as scans) {
+        <div class="onglet">
+          @for (s of scans; track s.id) {
+            <div class="element">
+              <div>
+                <strong>{{ s.medicament?.nomCommercial ?? 'Médicament non reconnu' }}</strong>
+                @if (s.medicament) { <span class="texte-secondaire"> · {{ s.medicament.dci }} {{ s.medicament.dosage }}</span> }
+                <p class="texte-secondaire details">
+                  Scanné le {{ s.dateScan | date: 'dd/MM/yyyy à HH:mm' }}
+                  @if (s.numeroLot) { · Lot {{ s.numeroLot }} }
+                  @if (s.dateExpiration) {
+                    · <span [class.perime]="estPerime(s)">Exp. {{ s.dateExpiration | date: 'MM/yyyy' }}{{ estPerime(s) ? ' (périmé)' : '' }}</span>
+                  }
+                </p>
+              </div>
+              <span class="statut statut-{{ s.statut }}" [matTooltip]="s.scoreConfiance !== null ? 'Confiance OCR : ' + s.scoreConfiance + ' %' : ''">
+                {{ libellesStatut[s.statut] }}
+              </span>
+            </div>
+          } @empty {
+            <p class="texte-secondaire">Aucun médicament scanné.</p>
+          }
+        </div>
+      }
+    </mat-tab>
+
+    <!-- Alertes -->
+    <mat-tab [disabled]="!f.alertes">
+      <ng-template mat-tab-label>
+        <mat-icon class="icone-onglet">{{ f.alertes ? 'warning' : 'lock' }}</mat-icon>
+        Alertes ({{ nbAlertesNonTraitees() }})
+      </ng-template>
+      @if (f.alertes) {
+        <div class="onglet">
+          @for (a of alertesTriees(); track a.id) {
+            <div class="alerte gravite-{{ a.niveauGravite }}" [class.traitee]="a.traitee">
+              <div class="alerte-entete">
+                <strong>{{ libellesTypeAlerte[a.type] }}</strong>
+                <span class="texte-secondaire">Gravité {{ libellesGravite[a.niveauGravite] | lowercase }}</span>
+                @if (a.traitee) { <span class="badge-traitee"><mat-icon>check</mat-icon> Traitée</span> }
+              </div>
+              <p>{{ a.message }}</p>
+              <p class="texte-secondaire details">
+                {{ a.dateGeneration | date: 'dd/MM/yyyy à HH:mm' }}
+                @if (a.medicamentNom) { · {{ a.medicamentNom }} }
+              </p>
+            </div>
+          } @empty {
+            <p class="texte-secondaire">Aucune alerte pour ce patient.</p>
+          }
+        </div>
+      }
+    </mat-tab>
+
+    <!-- Rappels -->
+    <mat-tab [disabled]="!f.rappels">
+      <ng-template mat-tab-label>
+        <mat-icon class="icone-onglet">{{ f.rappels ? 'alarm' : 'lock' }}</mat-icon>
+        Rappels
+      </ng-template>
+      @if (f.rappels; as rappels) {
+        <div class="onglet">
+          @for (r of rappels; track r.id) {
+            <div class="element" [class.inactif]="!r.actif">
+              <span class="heure">{{ heureCourte(r.heurePrise) }}</span>
+              <div class="rappel-texte">
+                <strong>{{ r.libelle }}</strong>
+                <p class="texte-secondaire details">
+                  {{ r.medicament.nomCommercial }} {{ r.medicament.dosage }} · {{ libellesFrequence[r.frequence] }}
+                  · depuis le {{ r.dateDebut | date: 'dd/MM/yyyy' }}
+                </p>
+              </div>
+              <span class="statut">{{ r.actif ? 'Actif' : 'Inactif' }}</span>
+            </div>
+          } @empty {
+            <p class="texte-secondaire">Aucun rappel configuré.</p>
+          }
+        </div>
+      }
+    </mat-tab>
+  </mat-tab-group>
+
+  @if (categories().length < 4) {
+    <p class="texte-secondaire note-perimetre">
+      <mat-icon>lock</mat-icon>
+      Les onglets grisés correspondent à des données que le patient n'a pas choisi de partager.
+    </p>
+  }
+}

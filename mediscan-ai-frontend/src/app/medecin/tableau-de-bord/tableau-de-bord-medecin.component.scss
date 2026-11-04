@@ -1,0 +1,40 @@
+.indicateurs {
+  margin-bottom: 24px;
+}
+
+.indicateur {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 16px;
+  align-items: center;
+  padding: 20px;
+
+  mat-icon {
+    grid-row: span 2;
+    font-size: 40px;
+    width: 40px;
+    height: 40px;
+    color: var(--mat-sys-primary);
+  }
+
+  .valeur {
+    font: var(--mat-sys-display-small);
+  }
+
+  .libelle {
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  &.danger mat-icon,
+  &.danger .valeur {
+    color: var(--mat-sys-error);
+  }
+}
+
+.erreur {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--mat-sys-error);
+}

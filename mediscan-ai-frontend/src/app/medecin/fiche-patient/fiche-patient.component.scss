@@ -1,0 +1,207 @@
+.retour {
+  margin-bottom: 16px;
+}
+
+/* ----- Erreur / accès refusé ----- */
+.carte-erreur {
+  max-width: 640px;
+  text-align: center;
+
+  mat-card-content {
+    padding: 32px 24px;
+  }
+
+  h1 {
+    font: var(--mat-sys-headline-small);
+    margin: 8px 0;
+  }
+}
+
+.icone-erreur {
+  font-size: 56px;
+  width: 56px;
+  height: 56px;
+  color: var(--mat-sys-error);
+}
+
+/* ----- En-tête ----- */
+.entete {
+  margin-bottom: 16px;
+}
+
+.identite {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+
+  h1 {
+    font: var(--mat-sys-headline-medium);
+    margin: 0 0 4px;
+  }
+
+  p {
+    margin: 4px 0;
+  }
+}
+
+.contact,
+.consentement p,
+.note-perimetre {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.bandeau-alerte {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+}
+
+/* ----- Onglets ----- */
+.icone-onglet {
+  margin-right: 8px;
+}
+
+.onglet {
+  padding: 24px 4px;
+
+  section {
+    margin-bottom: 20px;
+  }
+
+  h2 {
+    font: var(--mat-sys-title-small);
+    color: var(--mat-sys-primary);
+    margin: 0 0 8px;
+  }
+}
+
+.chip-allergie {
+  --mat-chip-elevated-container-color: var(--mat-sys-error-container);
+  --mat-chip-label-text-color: var(--mat-sys-on-error-container);
+  --mat-chip-with-avatar-avatar-color: var(--mat-sys-on-error-container);
+}
+
+.maj {
+  font: var(--mat-sys-body-small);
+}
+
+.element {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+
+  &.inactif {
+    opacity: 0.6;
+  }
+}
+
+.details {
+  margin: 4px 0 0;
+  font: var(--mat-sys-body-small);
+}
+
+.perime {
+  color: var(--mat-sys-error);
+  font-weight: 500;
+}
+
+.statut {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font: var(--mat-sys-label-medium);
+  background: var(--mat-sys-surface-container-high);
+
+  &.statut-TERMINE {
+    color: var(--ms-succes);
+  }
+
+  &.statut-A_VERIFIER {
+    color: var(--ms-avertissement);
+  }
+
+  &.statut-ECHEC {
+    color: var(--mat-sys-error);
+  }
+}
+
+.heure {
+  font: var(--mat-sys-title-large);
+  color: var(--mat-sys-primary);
+  min-width: 64px;
+}
+
+.rappel-texte {
+  flex: 1;
+}
+
+/* ----- Alertes : bordure colorée selon la gravité ----- */
+.alerte {
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  border-left: 6px solid;
+  background: var(--mat-sys-surface-container-low);
+
+  p {
+    margin: 6px 0 0;
+  }
+
+  &.gravite-ELEVE {
+    border-left-color: var(--ms-gravite-eleve);
+  }
+
+  &.gravite-MOYEN {
+    border-left-color: var(--ms-gravite-moyen);
+  }
+
+  &.gravite-FAIBLE {
+    border-left-color: var(--ms-gravite-faible);
+  }
+
+  &.traitee {
+    opacity: 0.6;
+  }
+}
+
+.alerte-entete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.badge-traitee {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--ms-succes);
+  font: var(--mat-sys-label-medium);
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.note-perimetre {
+  margin-top: 16px;
+}

@@ -1,0 +1,121 @@
+<div class="entete">
+  <h1 class="titre-page">Mes patients</h1>
+  <mat-form-field appearance="outline" class="recherche" subscriptSizing="dynamic">
+    <mat-label>Rechercher un patient</mat-label>
+    <mat-icon matPrefix>search</mat-icon>
+    <input matInput [value]="recherche()" (input)="rechercher($event)" placeholder="Nom ou prénom" />
+    @if (recherche()) {
+      <button mat-icon-button matSuffix type="button" (click)="recherche.set('')" aria-label="Effacer la recherche">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </mat-form-field>
+</div>
+
+<p class="texte-secondaire info">
+  <mat-icon>verified_user</mat-icon>
+  Seuls les patients qui vous ont donné leur consentement apparaissent dans cette liste.
+</p>
+
+@if (chargement()) {
+  <mat-progress-bar mode="indeterminate" />
+} @else if (erreur()) {
+  <mat-card appearance="outlined">
+    <mat-card-content class="message erreur">
+      <mat-icon>error</mat-icon>
+      <span>{{ erreur() }}</span>
+      <button mat-button type="button" (click)="charger()">Réessayer</button>
+    </mat-card-content>
+  </mat-card>
+} @else if (patients().length === 0) {
+  <mat-card appearance="outlined">
+    <mat-card-content class="message">
+      <mat-icon>group_off</mat-icon>
+      <span>Aucun patient ne vous a encore partagé ses données.</span>
+    </mat-card-content>
+  </mat-card>
+} @else if (patientsAffiches().length === 0) {
+  <p class="texte-secondaire">Aucun patient ne correspond à « {{ recherche() }} ».</p>
+} @else if (!estMobile()) {
+  <!-- ===== Ordinateur : tableau triable ===== -->
+  <div class="tableau-conteneur">
+    <table
+      mat-table
+      [dataSource]="patientsAffiches()"
+      matSort
+      [matSortActive]="tri().active"
+      [matSortDirection]="tri().direction"
+      (matSortChange)="tri.set($event)"
+    >
+      <ng-container matColumnDef="patient">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Patient</th>
+        <td mat-cell *matCellDef="let p">
+          <strong>{{ p.nom }}</strong> {{ p.prenom }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="age">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Âge</th>
+        <td mat-cell *matCellDef="let p">{{ p.age !== null ? p.age + ' ans' : '—' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="groupeSanguin">
+        <th mat-header-cell *matHeaderCellDef>Groupe</th>
+        <td mat-cell *matCellDef="let p">{{ p.groupeSanguin ?? '—' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="alertes">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Alertes</th>
+        <td mat-cell *matCellDef="let p"><app-pastille-alertes [nombre]="p.alertesNonTraitees" /></td>
+      </ng-container>
+
+      <ng-container matColumnDef="perimetre">
+        <th mat-header-cell *matHeaderCellDef>Données partagées</th>
+        <td mat-cell *matCellDef="let p">
+          <mat-chip-set aria-label="Catégories partagées">
+            @for (c of categoriesPartagees(p.perimetreDonnees); track c) {
+              <mat-chip>{{ libellesCategorie[c] }}</mat-chip>
+            }
+          </mat-chip-set>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="consentement">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Consentement</th>
+        <td mat-cell *matCellDef="let p">{{ p.dateConsentement | date: 'dd/MM/yyyy' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef><span class="cdk-visually-hidden">Actions</span></th>
+        <td mat-cell *matCellDef="let p">
+          <a mat-icon-button [routerLink]="['/medecin/patients', p.id]" [attr.aria-label]="'Ouvrir la fiche de ' + p.prenom + ' ' + p.nom">
+            <mat-icon>chevron_right</mat-icon>
+          </a>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="colonnes"></tr>
+      <tr mat-row *matRowDef="let p; columns: colonnes" class="ligne" [routerLink]="['/medecin/patients', p.id]"></tr>
+    </table>
+  </div>
+} @else {
+  <!-- ===== Smartphone : cartes ===== -->
+  <div class="cartes">
+    @for (p of patientsAffiches(); track p.id) {
+      <a class="carte-lien" [routerLink]="['/medecin/patients', p.id]">
+        <mat-card appearance="outlined">
+          <mat-card-header>
+            <mat-card-title>{{ p.prenom }} {{ p.nom }}</mat-card-title>
+            <mat-card-subtitle>
+              {{ p.age !== null ? p.age + ' ans' : 'Âge inconnu' }} · {{ p.groupeSanguin ?? 'groupe inconnu' }}
+            </mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content class="carte-contenu">
+            <app-pastille-alertes [nombre]="p.alertesNonTraitees" />
+            <span class="texte-secondaire">Consentement du {{ p.dateConsentement | date: 'dd/MM/yyyy' }}</span>
+          </mat-card-content>
+        </mat-card>
+      </a>
+    }
+  </div>
+}

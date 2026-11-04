@@ -12,7 +12,7 @@
     </div>
 
     <mat-nav-list>
-      @for (entree of menu; track entree.lien) {
+      @for (entree of menu(); track entree.lien) {
         <a
           mat-list-item
           [routerLink]="entree.lien"
@@ -28,29 +28,31 @@
     </mat-nav-list>
   </mat-sidenav>
 
-  <mat-sidenav-content class="zone-principale">
+  <mat-sidenav-content>
     <mat-toolbar class="barre">
       @if (estMobile()) {
         <button mat-icon-button type="button" (click)="sidenav.toggle()" aria-label="Ouvrir le menu">
           <mat-icon>menu</mat-icon>
         </button>
       }
-      <span class="titre">Espace patient</span>
+      <span class="titre">{{ titreEspace() }}</span>
       <span class="espace"></span>
 
       <button mat-button type="button" [matMenuTriggerFor]="menuCompte" class="compte">
         <span class="pastille" aria-hidden="true">{{ initiales() }}</span>
         @if (!estMobile()) {
-          <span>{{ auth.nomComplet() }}</span>
+          <span>{{ nomAffiche() }}</span>
         }
         <mat-icon iconPositionEnd>expand_more</mat-icon>
       </button>
       <mat-menu #menuCompte="matMenu" xPosition="before">
-        <a mat-menu-item routerLink="profil">
-          <mat-icon>person</mat-icon>
-          <span>Mon profil</span>
-        </a>
-        <mat-divider />
+        @if (lienProfil(); as lien) {
+          <a mat-menu-item [routerLink]="lien">
+            <mat-icon>person</mat-icon>
+            <span>Mon profil</span>
+          </a>
+          <mat-divider />
+        }
         <button mat-menu-item type="button" (click)="seDeconnecter()">
           <mat-icon>logout</mat-icon>
           <span>Se déconnecter</span>

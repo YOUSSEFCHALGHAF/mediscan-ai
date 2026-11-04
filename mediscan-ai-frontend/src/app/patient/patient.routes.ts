@@ -1,18 +1,29 @@
 import { Routes } from '@angular/router';
 
-import { PatientLayoutComponent } from './layout/patient-layout/patient-layout.component';
-/**
- * Routes de l'espace patient (/patient/...).
- * Chargées uniquement quand un patient se connecte (lazy loading).
- * Les rubriques encore en construction affichent une page "à venir".
- */
+import { EntreeMenu, EspaceLayoutComponent } from '../shared/layouts/espace-layout/espace-layout.component';
+
+/** Menu latéral de l'espace patient. */
+const MENU_PATIENT: EntreeMenu[] = [
+  { lien: 'tableau-de-bord', libelle: 'Tableau de bord', icone: 'dashboard' },
+  { lien: 'profil', libelle: 'Mon profil', icone: 'person' },
+  { lien: 'anamnese', libelle: 'Mon anamnèse', icone: 'assignment' },
+  { lien: 'scanner', libelle: 'Scanner un médicament', icone: 'photo_camera' },
+  { lien: 'historique', libelle: 'Historique', icone: 'history' },
+  { lien: 'rappels', libelle: 'Rappels', icone: 'alarm' },
+  { lien: 'partage', libelle: 'Partage médecin', icone: 'share' },
+];
+
 const pageAVenir = () =>
   import('../shared/components/page-a-venir/page-a-venir.component').then((m) => m.PageAVenirComponent);
 
+/**
+ * Routes de l'espace patient (/patient/...), chargées uniquement à la connexion d'un patient.
+ */
 export const PATIENT_ROUTES: Routes = [
   {
     path: '',
-    component: PatientLayoutComponent,
+    component: EspaceLayoutComponent,
+    data: { titreEspace: 'Espace patient', menu: MENU_PATIENT, lienProfil: '/patient/profil' },
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'tableau-de-bord' },
       {
