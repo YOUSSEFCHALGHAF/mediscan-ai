@@ -9,10 +9,7 @@ import com.mediscan.mediscan_ai_backend.entity.ScanMedicament;
 import com.mediscan.mediscan_ai_backend.entity.enums.StatutScan;
 import com.mediscan.mediscan_ai_backend.exception.RequeteInvalideException;
 import com.mediscan.mediscan_ai_backend.exception.ResourceNotFoundException;
-import com.mediscan.mediscan_ai_backend.repository.AnamneseRepository;
-import com.mediscan.mediscan_ai_backend.repository.MedicamentRepository;
-import com.mediscan.mediscan_ai_backend.repository.PatientRepository;
-import com.mediscan.mediscan_ai_backend.repository.ScanMedicamentRepository;
+import com.mediscan.mediscan_ai_backend.repository.*;
 import com.mediscan.mediscan_ai_backend.util.ListeTexte;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +35,8 @@ public class ScanService {
     private final AnamneseRepository anamneseRepository;
     private final StockageImageService stockageImage;
     private final AnalyseScanService analyseScanService;
-
+    private final AlerteService alerteService;
+    private final AlerteRepository alerteRepository;
     /**
      * Enregistre l'image, crée le scan (EN_COURS) puis lance l'analyse IA.
      * Le statut final (TERMINE, A_VERIFIER ou ECHEC) est enregistré à la fin de la transaction.
@@ -58,7 +56,8 @@ public class ScanService {
 
             // Analyse IA : prétraitement, OCR, extraction, rapprochement avec la base
             analyseScanService.analyser(enregistre);
-
+            // Sécurité médicamenteuse : allergies, interactions, contre-indications, expiration
+            alerteService.genererPourScan(enregistre);
             return ScanResponse.from(enregistre);
         } catch (RuntimeException e) {
             // Si la base refuse l'enregistrement, on ne laisse pas d'image orpheline sur le disque
@@ -87,6 +86,8 @@ public class ScanService {
         scan.setStatut(StatutScan.TERMINE);
         log.info("Scan {} corrigé manuellement par le patient {} : {}", scanId, patientId, medicament.getNomCommercial());
         // ÉTAPE 16 : les alertes (interactions, allergies...) seront recalculées ici
+        // Le médicament à changer : les alertes du scan sont recalculées
+        alerteService.genererPourScan(scan);
         return ScanResponse.from(scan);
     }
 
@@ -128,7 +129,7 @@ public class ScanService {
     public void supprimer(Long patientId, Long scanId) {
         ScanMedicament scan = trouver(patientId, scanId);
         String cheminImage = scan.getImageUrl();
-
+        alerteRepository.deleteByScan(scan);
         scanRepository.delete(scan);
         scanRepository.flush();
 

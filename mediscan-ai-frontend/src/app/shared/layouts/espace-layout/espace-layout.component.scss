@@ -63,3 +63,16 @@
     padding: 16px 12px;
   }
 }
+/* Pastille rouge du menu (ex. nombre d'alertes non traitées) */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--mat-sys-error);
+  color: var(--mat-sys-on-error);
+  font: var(--mat-sys-label-medium);
+}

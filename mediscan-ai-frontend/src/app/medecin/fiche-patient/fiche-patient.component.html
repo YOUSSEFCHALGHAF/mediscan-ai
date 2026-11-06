@@ -160,22 +160,13 @@
       </ng-template>
       @if (f.alertes) {
         <div class="onglet">
-          @for (a of alertesTriees(); track a.id) {
-            <div class="alerte gravite-{{ a.niveauGravite }}" [class.traitee]="a.traitee">
-              <div class="alerte-entete">
-                <strong>{{ libellesTypeAlerte[a.type] }}</strong>
-                <span class="texte-secondaire">Gravité {{ libellesGravite[a.niveauGravite] | lowercase }}</span>
-                @if (a.traitee) { <span class="badge-traitee"><mat-icon>check</mat-icon> Traitée</span> }
-              </div>
-              <p>{{ a.message }}</p>
-              <p class="texte-secondaire details">
-                {{ a.dateGeneration | date: 'dd/MM/yyyy à HH:mm' }}
-                @if (a.medicamentNom) { · {{ a.medicamentNom }} }
-              </p>
-            </div>
-          } @empty {
-            <p class="texte-secondaire">Aucune alerte pour ce patient.</p>
-          }
+          <app-liste-alertes
+            [alertes]="alertesTriees()"
+            [peutTraiter]="true"
+            [enCours]="alertesEnCours()"
+            messageVide="Aucune alerte pour ce patient."
+              (traiter)="marquerTraitee($event)"
+          />
         </div>
       }
     </mat-tab>

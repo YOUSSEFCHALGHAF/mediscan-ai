@@ -10,6 +10,7 @@ const MENU_PATIENT: EntreeMenu[] = [
   { lien: 'anamnese', libelle: 'Mon anamnèse', icone: 'assignment' },
   { lien: 'scanner', libelle: 'Scanner un médicament', icone: 'photo_camera' },
   { lien: 'historique', libelle: 'Historique', icone: 'history' },
+  { lien: 'alertes', libelle: 'Mes alertes', icone: 'warning', badge: 'alertes' },
   { lien: 'rappels', libelle: 'Rappels', icone: 'alarm' },
   { lien: 'partage', libelle: 'Partage médecin', icone: 'share' },
 ];
@@ -61,6 +62,11 @@ export const PATIENT_ROUTES: Routes = [
         title: 'Détail du scan - MediScan AI',
         loadComponent: () =>
           import('./historique/detail-scan/detail-scan.component').then((m) => m.DetailScanComponent),
+      },
+      {
+        path: 'alertes',
+        title: 'Mes alertes - MediScan AI',
+        loadComponent: () => import('./alertes/alertes.component').then((m) => m.AlertesComponent),
       },
       {
         path: 'rappels',

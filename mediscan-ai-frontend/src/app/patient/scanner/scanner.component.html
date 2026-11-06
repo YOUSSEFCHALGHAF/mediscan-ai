@@ -121,7 +121,13 @@
         </mat-card>
 
         <mat-card appearance="outlined" class="carte-resultat">
-          <mat-card-content>
+                    <mat-card-content>
+            @if (alertes().length) {
+              <section class="alertes" aria-labelledby="titre-alertes">
+                <h2 id="titre-alertes"><mat-icon>warning</mat-icon> {{ alertes().length }} alerte(s) de sécurité</h2>
+                <app-liste-alertes [alertes]="alertes()" />
+              </section>
+            }
             <app-resultat-scan [scan]="scan" [medicament]="ficheMedicament()" />
           </mat-card-content>
           <mat-card-actions class="actions">

@@ -36,12 +36,12 @@ export const MEDECIN_ROUTES: Routes = [
         loadComponent: () =>
           import('./fiche-patient/fiche-patient.component').then((m) => m.FichePatientComponent),
       },
-      {
+            {
         path: 'alertes',
-        title: 'Alertes - MediScan AI',
         loadComponent: () =>
           import('../shared/components/page-a-venir/page-a-venir.component').then((m) => m.PageAVenirComponent),
-        data: { titre: 'Alertes de mes patients', etape: 16, icone: 'warning' },
+        data: { titre: 'Alertes de mes patients', etape: 16 },
+        title: 'Alertes - MediScan AI',
       },
     ],
   },

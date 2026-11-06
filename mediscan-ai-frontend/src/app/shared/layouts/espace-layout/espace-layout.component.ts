@@ -12,12 +12,14 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { map } from 'rxjs';
 
 import { AuthService } from '../../../core/services/auth.service';
-
+import { AlerteService } from '../../../core/services/alerte.service';
 /** Élément du menu latéral. */
 export interface EntreeMenu {
   lien: string;
   libelle: string;
   icone: string;
+    /** Compteur affiché en pastille rouge à côté du libellé. */
+  badge?: 'alertes';
 }
 
 /**
@@ -38,7 +40,7 @@ export interface EntreeMenu {
 export class EspaceLayoutComponent {
   protected readonly auth = inject(AuthService);
   private readonly sidenav = viewChild.required<MatSidenav>('sidenav');
-
+  protected readonly alerteService = inject(AlerteService);
   /** Données de la route */
   readonly titreEspace = input('Mon espace');
   readonly menu = input<EntreeMenu[]>([]);
@@ -59,7 +61,17 @@ export class EspaceLayoutComponent {
   protected readonly nomAffiche = computed(() =>
     this.auth.role() === 'MEDECIN' ? `Dr ${this.auth.nomComplet()}` : this.auth.nomComplet(),
   );
+  constructor() {
+    // Patient : on charge le nombre d'alertes non traitées pour la pastille du menu
+    if (this.auth.role() === 'PATIENT') {
+      this.alerteService.actualiserCompteur();
+    }
+  }
 
+  /** Valeur de la pastille d'une entrée du menu (0 = pas de pastille). */
+  protected valeurBadge(entree: EntreeMenu): number {
+    return entree.badge === 'alertes' ? this.alerteService.nonTraitees() : 0;
+  }
   fermerSiMobile(): void {
     if (this.estMobile()) {
       this.sidenav().close();

@@ -12,6 +12,25 @@
   </mat-card>
 } @else if (donnees(); as d) {
   <div class="grille-cartes">
+    <!-- Alertes -->
+    <mat-card appearance="outlined" [class.carte-alerte]="alertesNonTraitees().length > 0">
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="avatar">health_and_safety</mat-icon>
+        <mat-card-title>Sécurité médicamenteuse</mat-card-title>
+        <mat-card-subtitle><app-pastille-alertes [nombre]="alertesNonTraitees().length" /> alerte(s) en attente</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        @for (a of alertesNonTraitees().slice(0, 2); track a.id) {
+          <p class="ligne-alerte gravite-{{ a.niveauGravite }}">{{ a.message }}</p>
+        } @empty {
+          <p class="texte-secondaire">Aucune alerte : rien à signaler dans vos médicaments scannés.</p>
+        }
+      </mat-card-content>
+      <mat-card-actions>
+        <a mat-button routerLink="../alertes">Voir toutes mes alertes</a>
+      </mat-card-actions>
+    </mat-card>
+
     <!-- Anamnèse -->
     <mat-card appearance="outlined">
       <mat-card-header>

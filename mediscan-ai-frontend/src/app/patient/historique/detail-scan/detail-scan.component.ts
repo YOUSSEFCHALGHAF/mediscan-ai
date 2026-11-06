@@ -8,7 +8,9 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { filter, switchMap } from 'rxjs';
 
-import { Medicament, Scan } from '../../../core/models';
+import { Alerte, Medicament, Scan } from '../../../core/models';
+import { AlerteService } from '../../../core/services/alerte.service';
+import { ListeAlertesComponent } from '../../../shared/components/liste-alertes/liste-alertes.component';
 import { MedicamentService } from '../../../core/services/medicament.service';
 import { MessagesService } from '../../../core/services/messages.service';
 import { PatientService } from '../../../core/services/patient.service';
@@ -27,7 +29,7 @@ import { CorrectionMedicamentComponent, DonneesCorrection } from '../correction-
   selector: 'app-detail-scan',
   imports: [
     DatePipe, RouterLink, MatCardModule, MatButtonModule, MatIconModule, MatProgressBarModule,
-    ImageScanComponent, ResultatScanComponent,
+    ImageScanComponent, ResultatScanComponent, ListeAlertesComponent,
   ],
   templateUrl: './detail-scan.component.html',
   styleUrl: './detail-scan.component.scss',
@@ -36,6 +38,7 @@ export class DetailScanComponent implements OnInit {
   private readonly patientService = inject(PatientService);
   private readonly scanService = inject(ScanService);
   private readonly medicamentService = inject(MedicamentService);
+  private readonly alerteService = inject(AlerteService);
   private readonly messages = inject(MessagesService);
   private readonly dialog = inject(MatDialog);
   private readonly router = inject(Router);
@@ -46,6 +49,7 @@ export class DetailScanComponent implements OnInit {
 
   protected readonly scan = signal<Scan | null>(null);
   protected readonly fiche = signal<Medicament | null>(null);
+  protected readonly alertes = signal<Alerte[]>([]);
   protected readonly chargement = signal(true);
   protected readonly erreur = signal<string | null>(null);
   /** Action en cours : désactive les boutons pour éviter les doubles clics. */
@@ -90,6 +94,9 @@ export class DetailScanComponent implements OnInit {
           this.scan.set(corrige);
           this.actionEnCours.set(false);
           this.messages.succes(`Scan corrigé : ${corrige.medicament?.nomCommercial}`);
+          // Le serveur a recalculé les alertes avec le bon médicament
+          this.chargerAlertes(corrige.id);
+          this.alerteService.actualiserCompteur();
         },
         error: (err) => {
           this.actionEnCours.set(false);
@@ -152,13 +159,15 @@ export class DetailScanComponent implements OnInit {
       });
   }
 
+    private chargerAlertes(scanId: number): void {
+    this.alerteService.getAlertesScan(scanId).subscribe({
+      next: (alertes) => this.alertes.set(alertes),
+      error: () => this.alertes.set([]),
+    });
+  }
+
   private afficher(scan: Scan): void {
     this.scan.set(scan);
-    if (scan.medicament) {
-      this.medicamentService.getMedicament(scan.medicament.id).subscribe({
-        next: (fiche) => this.fiche.set(fiche),
-        error: () => this.fiche.set(null),
-      });
-    }
-  }
+    this.chargerAlertes(scan.id);
+}
 }

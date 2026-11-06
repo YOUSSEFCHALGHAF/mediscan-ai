@@ -19,6 +19,7 @@ const CLAMOXYL = { id: 6, nomCommercial: 'Clamoxyl', dci: 'amoxicilline', dosage
 /** Accès aux membres "protected" pour le test. */
 interface DetailTeste {
   scan(): Scan | null;
+  alertes(): unknown[];
   corriger(): void;
   ajouterAuxTraitements(): void;
   supprimer(): void;
@@ -51,6 +52,7 @@ describe('DetailScanComponent', () => {
     http = TestBed.inject(HttpTestingController);
     fixture.detectChanges();
     http.expectOne(`${URL_SCANS}/4`).flush(SCAN_A_VERIFIER);
+    http.expectOne(`${URL_SCANS}/4/alertes`).flush([]);
     await fixture.whenStable();
     // La photo est demandée une fois le scan affiché
     http.expectOne(`${URL_SCANS}/4/image`).flush(new Blob(['x']));
@@ -69,6 +71,14 @@ describe('DetailScanComponent', () => {
 
     expect(composant().scan()?.statut).toBe('TERMINE');
     expect(messages.succes).toHaveBeenCalledWith('Scan corrigé : Clamoxyl');
+    
+    // Le serveur a recalculé les alertes : Yasmine est allergique à l'amoxicilline
+    http.expectOne(`${URL_SCANS}/4/alertes`).flush([
+      { id: 9, type: 'ALLERGIE', niveauGravite: 'ELEVE', message: 'Allergie déclarée (amoxicilline)', traitee: false,
+        dateGeneration: '2026-11-04T10:00:00', scanId: 4, medicamentNom: 'Clamoxyl' },
+    ]);
+    http.expectOne(`${environment.apiUrl}/patient/alertes`).flush([]);
+    expect(composant().alertes()).toHaveLength(1);
   });
 
   it('n\'envoie rien si la correction est annulée', () => {

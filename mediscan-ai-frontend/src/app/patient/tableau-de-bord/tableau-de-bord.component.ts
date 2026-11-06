@@ -7,28 +7,33 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 
-import { Anamnese, LIBELLES_STATUT_SCAN, Rappel, Scan } from '../../core/models';
+import { Alerte, Anamnese, LIBELLES_STATUT_SCAN, Rappel, Scan } from '../../core/models';
+import { AlerteService } from '../../core/services/alerte.service';
 import { AuthService } from '../../core/services/auth.service';
 import { PatientService } from '../../core/services/patient.service';
 import { heureCourte } from '../../core/utils/dates';
+import { trierAlertes } from '../../core/utils/alertes';
 import { messageErreurApi } from '../../core/utils/erreurs-api';
+import { PastilleAlertesComponent } from '../../shared/components/pastille-alertes/pastille-alertes.component';
 
 /** Données chargées en parallèle pour le tableau de bord. */
 interface DonneesTableauDeBord {
   anamnese: Anamnese;
   scans: Scan[];
   rappels: Rappel[];
+  alertes: Alerte[];
 }
 
-/** Vue d'ensemble du patient : anamnèse, derniers scans, prochain rappel. */
+/** Vue d'ensemble du patient : alertes, anamnèse, derniers scans, prochain rappel. */
 @Component({
   selector: 'app-tableau-de-bord',
-  imports: [DatePipe, RouterLink, MatCardModule, MatIconModule, MatButtonModule, MatProgressBarModule],
+  imports: [DatePipe, RouterLink, MatCardModule, MatIconModule, MatButtonModule, MatProgressBarModule, PastilleAlertesComponent],
   templateUrl: './tableau-de-bord.component.html',
   styleUrl: './tableau-de-bord.component.scss',
 })
 export class TableauDeBordComponent implements OnInit {
   private readonly patientService = inject(PatientService);
+  private readonly alerteService = inject(AlerteService);
   protected readonly auth = inject(AuthService);
 
   protected readonly chargement = signal(true);
@@ -51,6 +56,11 @@ export class TableauDeBordComponent implements OnInit {
 
   protected readonly derniersScans = computed(() => this.donnees()?.scans.slice(0, 3) ?? []);
 
+  /** Alertes non traitées, les plus graves d'abord (2 affichées sur la carte). */
+  protected readonly alertesNonTraitees = computed(() =>
+    trierAlertes(this.donnees()?.alertes ?? []).filter((a) => !a.traitee),
+  );
+
   ngOnInit(): void {
     this.charger();
   }
@@ -58,11 +68,12 @@ export class TableauDeBordComponent implements OnInit {
   charger(): void {
     this.chargement.set(true);
     this.erreur.set(null);
-    // forkJoin : lance les 3 requêtes EN PARALLÈLE et attend qu'elles soient toutes terminées
+    // forkJoin : lance les 4 requêtes EN PARALLÈLE et attend qu'elles soient toutes terminées
     forkJoin({
       anamnese: this.patientService.getAnamnese(),
       scans: this.patientService.getScans(),
       rappels: this.patientService.getRappels(),
+      alertes: this.alerteService.getMesAlertes(),
     }).subscribe({
       next: (resultat) => {
         this.donnees.set(resultat);

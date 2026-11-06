@@ -22,7 +22,10 @@
           (click)="fermerSiMobile()"
         >
           <mat-icon matListItemIcon>{{ entree.icone }}</mat-icon>
-          <span matListItemTitle>{{ entree.libelle }}</span>
+                    <span matListItemTitle>{{ entree.libelle }}</span>
+          @if (valeurBadge(entree); as n) {
+            <span matListItemMeta class="badge" [attr.aria-label]="n + ' non traitée(s)'">{{ n }}</span>
+          }
         </a>
       }
     </mat-nav-list>

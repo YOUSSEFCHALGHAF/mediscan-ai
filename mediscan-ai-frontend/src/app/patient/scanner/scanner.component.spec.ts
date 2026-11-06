@@ -15,6 +15,7 @@ interface ScannerTeste {
   erreur(): string | null;
   resultat(): { id: number } | null;
   ficheMedicament(): { posologie: string | null } | null;
+  alertes(): unknown[];
   preparerFichier(f: File): Promise<void>;
   envoyer(): void;
 }
@@ -80,7 +81,14 @@ describe('ScannerComponent', () => {
     );
     expect(composant().etape()).toBe('termine');
     expect(composant().resultat()?.id).toBe(12);
-
+    
+    // Alertes générées pour ce scan, puis mise à jour de la pastille du menu
+    http.expectOne(`${environment.apiUrl}/patient/scans/12/alertes`).flush([
+      { id: 1, type: 'INTERACTION', niveauGravite: 'ELEVE', message: 'Interaction warfarine', traitee: false,
+        dateGeneration: '2026-11-04T10:00:00', scanId: 12, medicamentNom: 'Doliprane' },
+    ]);
+    expect(composant().alertes()).toHaveLength(1);
+    http.expectOne(`${environment.apiUrl}/patient/alertes`).flush([]);
     // Fiche complète du médicament reconnu
     http.expectOne(`${environment.apiUrl}/medicaments/1`).flush({ id: 1, nomCommercial: 'Doliprane', posologie: '1 cp / 6 h' });
     expect(composant().ficheMedicament()?.posologie).toBe('1 cp / 6 h');
@@ -94,6 +102,8 @@ describe('ScannerComponent', () => {
       { status: 201, statusText: 'Created' },
     );
     expect(composant().etape()).toBe('termine');
+    http.expectOne(`${environment.apiUrl}/patient/scans/13/alertes`).flush([]);
+    http.expectOne(`${environment.apiUrl}/patient/alertes`).flush([]);
     http.expectNone(`${environment.apiUrl}/medicaments/13`);
   });
 

@@ -1,0 +1,32 @@
+<ul class="liste" aria-label="Alertes médicamenteuses">
+  @for (a of triees(); track a.id) {
+    <li class="alerte gravite-{{ a.niveauGravite }}" [class.traitee]="a.traitee">
+      <div class="entete">
+        <mat-icon class="icone-type" aria-hidden="true">{{ icones[a.type] }}</mat-icon>
+        <strong>{{ libellesType[a.type] }}</strong>
+        <span class="gravite">Gravité {{ libellesGravite[a.niveauGravite] | lowercase }}</span>
+        @if (a.traitee) {
+          <span class="badge-traitee"><mat-icon>check</mat-icon> Traitée</span>
+        }
+      </div>
+      <p class="message">{{ a.message }}</p>
+      <div class="pied">
+        <span class="texte-secondaire">
+          {{ a.dateGeneration | date: 'dd/MM/yyyy à HH:mm' }}
+          @if (a.medicamentNom) { · {{ a.medicamentNom }} }
+        </span>
+        @if (lienScans() && a.scanId) {
+          <a mat-button [routerLink]="[lienScans(), a.scanId]">Voir le scan</a>
+        }
+        @if (peutTraiter() && !a.traitee) {
+          <button mat-stroked-button type="button" [disabled]="enCours().has(a.id)" (click)="traiter.emit(a)">
+            <mat-icon>done</mat-icon>
+            Marquer comme traitée
+          </button>
+        }
+      </div>
+    </li>
+  } @empty {
+    <li class="vide texte-secondaire">{{ messageVide() }}</li>
+  }
+</ul>

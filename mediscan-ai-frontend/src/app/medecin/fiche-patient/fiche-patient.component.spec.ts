@@ -65,4 +65,21 @@ describe('FichePatientComponent', () => {
     const ongletRappels = onglets.find((o) => o.textContent?.includes('Rappels'));
     expect(ongletRappels?.getAttribute('aria-disabled')).toBe('true');
   });
+    it('marque une alerte comme traitée et met la fiche à jour', async () => {
+    const alerte = {
+      id: 7, type: 'ALLERGIE' as const, niveauGravite: 'ELEVE' as const, traitee: false, scanId: 4, medicamentNom: 'Clamoxyl',
+      message: 'Allergie déclarée (amoxicilline) : Clamoxyl contient amoxicilline.', dateGeneration: '2026-11-04T10:00:00',
+    };
+    fixture.detectChanges();
+    http.expectOne(`${environment.apiUrl}/medecin/patients/3`).flush({ ...FICHE_YASMINE, alertes: [alerte] });
+    await fixture.whenStable();
+
+    (fixture.componentInstance as unknown as { marquerTraitee(a: unknown): void }).marquerTraitee(alerte);
+    const requete = http.expectOne(`${environment.apiUrl}/medecin/patients/3/alertes/7/traitee`);
+    expect(requete.request.method).toBe('PUT');
+    requete.flush({ ...alerte, traitee: true });
+    await fixture.whenStable();
+
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Alertes (0)');
+  });
 });

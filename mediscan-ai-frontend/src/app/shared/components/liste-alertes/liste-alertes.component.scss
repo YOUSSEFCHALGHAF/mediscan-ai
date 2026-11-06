@@ -1,0 +1,91 @@
+:host {
+  display: block;
+}
+
+.liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.alerte {
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  border-left: 6px solid;
+  background: var(--mat-sys-surface-container-low);
+
+  &.gravite-ELEVE {
+    border-left-color: var(--ms-gravite-eleve);
+
+    .icone-type {
+      color: var(--ms-gravite-eleve);
+    }
+  }
+
+  &.gravite-MOYEN {
+    border-left-color: var(--ms-gravite-moyen);
+
+    .icone-type {
+      color: var(--ms-gravite-moyen);
+    }
+  }
+
+  &.gravite-FAIBLE {
+    border-left-color: var(--ms-gravite-faible);
+
+    .icone-type {
+      color: var(--ms-gravite-faible);
+    }
+  }
+
+  &.traitee {
+    opacity: 0.65;
+  }
+}
+
+.entete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.gravite {
+  font: var(--mat-sys-label-medium);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.message {
+  margin: 6px 0;
+}
+
+.pied {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+
+  .texte-secondaire {
+    flex: 1;
+    font: var(--mat-sys-body-small);
+  }
+}
+
+.badge-traitee {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--ms-succes);
+  font: var(--mat-sys-label-medium);
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.vide {
+  padding: 8px 0;
+}

@@ -8,7 +8,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { RouterLink } from '@angular/router';
 
-import { Medicament, Scan } from '../../core/models';
+import { Alerte, Medicament, Scan } from '../../core/models';
+import { AlerteService } from '../../core/services/alerte.service';
+import { ListeAlertesComponent } from '../../shared/components/liste-alertes/liste-alertes.component';
 import { CompressionImageService } from '../../core/services/compression-image.service';
 import { MedicamentService } from '../../core/services/medicament.service';
 import { MessagesService } from '../../core/services/messages.service';
@@ -34,7 +36,8 @@ type Mode = 'fichier' | 'webcam';
   imports: [
     DatePipe, RouterLink,
     MatCardModule, MatButtonModule, MatButtonToggleModule, MatIconModule, MatProgressBarModule,
-    CaptureWebcamComponent, ResultatScanComponent,
+    CaptureWebcamComponent, ResultatScanComponent, ListeAlertesComponent,
+
   ],
   templateUrl: './scanner.component.html',
   styleUrl: './scanner.component.scss',
@@ -42,6 +45,7 @@ type Mode = 'fichier' | 'webcam';
 export class ScannerComponent {
   private readonly scanService = inject(ScanService);
   private readonly medicamentService = inject(MedicamentService);
+  private readonly alerteService = inject(AlerteService);
   private readonly compression = inject(CompressionImageService);
   private readonly messages = inject(MessagesService);
 
@@ -57,7 +61,8 @@ export class ScannerComponent {
   protected readonly resultat = signal<Scan | null>(null);
   /** Fiche complète du médicament reconnu (posologie, contre-indications...). */
   protected readonly ficheMedicament = signal<Medicament | null>(null);
-
+  /** Alertes générées par l'IA pour ce scan (allergie, interaction...). */
+  protected readonly alertes = signal<Alerte[]>([]);
   private image: Blob | null = null;
 
   constructor() {
@@ -157,7 +162,14 @@ export class ScannerComponent {
   private afficherResultat(scan: Scan): void {
     this.resultat.set(scan);
     this.ficheMedicament.set(null);
+    this.alertes.set([]);
     this.etape.set('termine');
+    // Alertes de sécurité générées pour ce scan, puis mise à jour de la pastille du menu
+    this.alerteService.getAlertesScan(scan.id).subscribe({
+      next: (alertes) => this.alertes.set(alertes),
+      error: () => this.alertes.set([]),
+    });
+    this.alerteService.actualiserCompteur();
     // Médicament reconnu : on charge sa fiche complète (posologie, contre-indications, interactions)
     if (scan.medicament) {
       this.medicamentService.getMedicament(scan.medicament.id).subscribe({

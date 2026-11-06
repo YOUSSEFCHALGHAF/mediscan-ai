@@ -32,3 +32,26 @@ mat-card-content {
     color: var(--mat-sys-primary);
   }
 }
+/* Carte "Sécurité médicamenteuse" : bordure rouge s'il y a des alertes */
+.carte-alerte {
+  border-color: var(--mat-sys-error);
+}
+
+.ligne-alerte {
+  margin: 0 0 8px;
+  padding-left: 10px;
+  border-left: 4px solid;
+  font: var(--mat-sys-body-small);
+
+  &.gravite-ELEVE {
+    border-left-color: var(--ms-gravite-eleve);
+  }
+
+  &.gravite-MOYEN {
+    border-left-color: var(--ms-gravite-moyen);
+  }
+
+  &.gravite-FAIBLE {
+    border-left-color: var(--ms-gravite-faible);
+  }
+}

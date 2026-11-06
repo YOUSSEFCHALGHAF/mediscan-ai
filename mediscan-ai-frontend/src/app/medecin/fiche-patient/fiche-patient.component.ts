@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { DatePipe, LowerCasePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { Component, computed, inject, input, OnInit, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -11,15 +11,16 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 
 import {
+  Alerte,
   FichePatient,
   LIBELLES_CATEGORIE,
   LIBELLES_FREQUENCE,
-  LIBELLES_GRAVITE,
   LIBELLES_STATUT_SCAN,
-  LIBELLES_TYPE_ALERTE,
-  NiveauGravite,
   Scan,
 } from '../../core/models';
+import { AlerteService } from '../../core/services/alerte.service';
+import { MessagesService } from '../../core/services/messages.service';
+import { ListeAlertesComponent } from '../../shared/components/liste-alertes/liste-alertes.component';
 import { MedecinService } from '../../core/services/medecin.service';
 import { heureCourte, versDateIso } from '../../core/utils/dates';
 import { messageErreurApi } from '../../core/utils/erreurs-api';
@@ -31,7 +32,8 @@ interface ErreurFiche {
   message: string;
 }
 
-const ORDRE_GRAVITE: Record<NiveauGravite, number> = { ELEVE: 0, MOYEN: 1, FAIBLE: 2 };
+/** Ordre d'affichage des alertes : les plus graves d'abord. */
+const ORDRE_GRAVITE: Record<string, number> = { ELEVE: 0, MOYEN: 1, FAIBLE: 2 };
 
 /**
  * Fiche synthétique d'un patient pour le médecin.
@@ -41,7 +43,7 @@ const ORDRE_GRAVITE: Record<NiveauGravite, number> = { ELEVE: 0, MOYEN: 1, FAIBL
 @Component({
   selector: 'app-fiche-patient',
   imports: [
-    DatePipe, LowerCasePipe, RouterLink,
+    DatePipe, RouterLink, ListeAlertesComponent,
     MatCardModule, MatTabsModule, MatChipsModule, MatIconModule, MatButtonModule, MatProgressBarModule, MatTooltipModule,
   ],
   templateUrl: './fiche-patient.component.html',
@@ -49,6 +51,8 @@ const ORDRE_GRAVITE: Record<NiveauGravite, number> = { ELEVE: 0, MOYEN: 1, FAIBL
 })
 export class FichePatientComponent implements OnInit {
   private readonly medecinService = inject(MedecinService);
+  private readonly alerteService = inject(AlerteService);
+  private readonly messages = inject(MessagesService);
 
   /** Paramètre ":patientId" de l'URL (fourni automatiquement grâce à withComponentInputBinding). */
   readonly patientId = input.required<string>();
@@ -56,11 +60,10 @@ export class FichePatientComponent implements OnInit {
   protected readonly chargement = signal(true);
   protected readonly erreur = signal<ErreurFiche | null>(null);
   protected readonly fiche = signal<FichePatient | null>(null);
-
+  /** Alertes en cours de traitement (évite les doubles clics). */
+  protected readonly alertesEnCours = signal<ReadonlySet<number>>(new Set());
   protected readonly libellesCategorie = LIBELLES_CATEGORIE;
   protected readonly libellesStatut = LIBELLES_STATUT_SCAN;
-  protected readonly libellesTypeAlerte = LIBELLES_TYPE_ALERTE;
-  protected readonly libellesGravite = LIBELLES_GRAVITE;
   protected readonly libellesFrequence = LIBELLES_FREQUENCE;
   protected readonly heureCourte = heureCourte;
 
@@ -72,7 +75,9 @@ export class FichePatientComponent implements OnInit {
   /** Alertes non traitées d'abord, puis par gravité décroissante. */
   protected readonly alertesTriees = computed(() =>
     [...(this.fiche()?.alertes ?? [])].sort(
-      (a, b) => Number(a.traitee) - Number(b.traitee) || ORDRE_GRAVITE[a.niveauGravite] - ORDRE_GRAVITE[b.niveauGravite],
+      (a, b) =>
+        Number(a.traitee) - Number(b.traitee) ||
+        (ORDRE_GRAVITE[a.niveauGravite] ?? 9) - (ORDRE_GRAVITE[b.niveauGravite] ?? 9),
     ),
   );
   protected readonly nbAlertesNonTraitees = computed(
@@ -103,5 +108,44 @@ export class FichePatientComponent implements OnInit {
   /** Vrai si la date d'expiration du médicament est dépassée. */
   estPerime(scan: Scan): boolean {
     return !!scan.dateExpiration && scan.dateExpiration < this.aujourdhuiIso;
+  }
+
+  /**
+   * Le médecin marque une alerte comme traitée.
+   * L'alerte est mise à jour localement dès la réponse du serveur, sans recharger toute la fiche.
+   */
+  protected marquerTraitee(alerte: Alerte): void {
+    if (alerte.traitee || this.alertesEnCours().has(alerte.id)) {
+      return; // déjà traitée, ou clic en double
+    }
+    this.ajouterEnCours(alerte.id);
+
+      this.alerteService.marquerTraitee(Number(this.patientId()), alerte.id).subscribe({
+      next: () => {
+        this.fiche.update((f) =>
+          f && f.alertes
+            ? { ...f, alertes: f.alertes.map((a) => (a.id === alerte.id ? { ...a, traitee: true } : a)) }
+            : f,
+        );
+        this.retirerEnCours(alerte.id);
+        this.messages.succes('Alerte marquée comme traitée.');
+      },
+      error: (err: HttpErrorResponse) => {
+        this.retirerEnCours(alerte.id);
+        this.messages.erreur(messageErreurApi(err));
+      },
+    });
+  }
+
+  private ajouterEnCours(id: number): void {
+    this.alertesEnCours.update((ens) => new Set(ens).add(id));
+  }
+
+  private retirerEnCours(id: number): void {
+    this.alertesEnCours.update((ens) => {
+      const copie = new Set(ens);
+      copie.delete(id);
+      return copie;
+    });
   }
 }
