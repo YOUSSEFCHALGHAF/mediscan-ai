@@ -89,3 +89,18 @@
 .vide {
   padding: 8px 0;
 }
+/* File d'alertes du médecin : lien vers la fiche du patient concerné */
+.patient {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  font: var(--mat-sys-label-large);
+  color: var(--mat-sys-primary);
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}

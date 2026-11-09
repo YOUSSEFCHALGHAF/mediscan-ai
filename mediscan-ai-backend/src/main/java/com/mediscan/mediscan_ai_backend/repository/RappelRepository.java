@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -48,4 +49,6 @@ public interface RappelRepository extends JpaRepository<Rappel, Long> {
             """)
     List<Rappel> findRappelsActifsEntre(@Param("hier") LocalDate hier,
                                         @Param("aujourdhui") LocalDate aujourdhui);
+    /** Étape 18 : rappels actifs des patients du médecin. */
+    long countByPatientIdInAndActifTrue(Collection<Long> patients);
 }

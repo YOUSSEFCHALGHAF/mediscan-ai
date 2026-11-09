@@ -24,6 +24,11 @@
             Marquer comme traitée
           </button>
         }
+        @if (a.patientId && a.patientNom) {
+          <a class="patient" [routerLink]="['/medecin/patients', a.patientId]">
+            <mat-icon>person</mat-icon>{{ a.patientNom }}
+          </a>
+        }
       </div>
     </li>
   } @empty {

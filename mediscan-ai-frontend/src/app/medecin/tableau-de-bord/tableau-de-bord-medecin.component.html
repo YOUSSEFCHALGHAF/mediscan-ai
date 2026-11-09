@@ -3,49 +3,102 @@
 @if (chargement()) {
   <mat-progress-bar mode="indeterminate" />
 } @else if (erreur()) {
-  <p class="erreur"><mat-icon>error</mat-icon> {{ erreur() }}</p>
-} @else {
-  <div class="grille-cartes indicateurs">
-    <mat-card appearance="outlined" class="indicateur">
+  <p class="erreur" role="alert">
+    <mat-icon>error</mat-icon> {{ erreur() }}
+    <button mat-button type="button" (click)="charger()">Réessayer</button>
+  </p>
+} @else if (donnees(); as d) {
+  <!-- ===== Indicateurs clés ===== -->
+  <section class="indicateurs" aria-label="Indicateurs clés">
+    <a mat-card appearance="outlined" class="indicateur" routerLink="/medecin/patients">
       <mat-icon>groups</mat-icon>
-      <span class="valeur">{{ patients().length }}</span>
+      <span class="valeur">{{ d.indicateurs.patientsSuivis }}</span>
       <span class="libelle">patient(s) suivi(s)</span>
-    </mat-card>
-    <mat-card appearance="outlined" class="indicateur" [class.danger]="totalAlertes() > 0">
+    </a>
+    <a mat-card appearance="outlined" class="indicateur" routerLink="/medecin/alertes" [class.danger]="d.indicateurs.alertesNonTraitees > 0">
       <mat-icon>warning</mat-icon>
-      <span class="valeur">{{ totalAlertes() }}</span>
-      <span class="libelle">alerte(s) non traitée(s)</span>
+      <span class="valeur">{{ d.indicateurs.alertesNonTraitees }}</span>
+      <span class="libelle">
+        alerte(s) à traiter
+        @if (d.indicateurs.alertesElevees) { <strong class="elevees">dont {{ d.indicateurs.alertesElevees }} élevée(s)</strong> }
+      </span>
+    </a>
+    <mat-card appearance="outlined" class="indicateur">
+      <mat-icon>photo_camera</mat-icon>
+      <span class="valeur">{{ d.indicateurs.scansSemaine }}</span>
+      <span class="libelle">scan(s) sur 7 jours</span>
     </mat-card>
     <mat-card appearance="outlined" class="indicateur">
-      <mat-icon>notification_important</mat-icon>
-      <span class="valeur">{{ aSurveiller().length }}</span>
-      <span class="libelle">patient(s) à surveiller</span>
+      <mat-icon>alarm</mat-icon>
+      <span class="valeur">{{ d.indicateurs.rappelsActifs }}</span>
+      <span class="libelle">rappel(s) de prise actif(s)</span>
     </mat-card>
-  </div>
+  </section>
 
-  <mat-card appearance="outlined">
+  <!-- ===== Graphiques ===== -->
+  <section class="graphiques" aria-label="Statistiques">
+    <mat-card appearance="outlined" class="large">
+      <mat-card-header>
+        <mat-card-title>Alertes des {{ d.periodeJours }} derniers jours</mat-card-title>
+        <mat-card-subtitle>Par jour et par gravité</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <app-graphique [config]="configEvolution()" [description]="resumeEvolution()" />
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card appearance="outlined">
+      <mat-card-header>
+        <mat-card-title>Répartition par type</mat-card-title>
+        <mat-card-subtitle>{{ d.periodeJours }} derniers jours</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        @if (aDesAlertesSurLaPeriode()) {
+          <app-graphique [config]="configRepartition()" [description]="resumeRepartition()" />
+        } @else {
+          <p class="vide"><mat-icon>check_circle</mat-icon> Aucune alerte sur la période.</p>
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card appearance="outlined">
+      <mat-card-header>
+        <mat-card-title>Médicaments les plus scannés</mat-card-title>
+        <mat-card-subtitle>Par vos patients, {{ d.periodeJours }} derniers jours</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        @if (d.medicamentsLesPlusScannes.length) {
+          <app-graphique [config]="configMedicaments()" [description]="resumeMedicaments()" />
+        } @else {
+          <p class="vide"><mat-icon>info</mat-icon> Aucun médicament scanné sur la période.</p>
+        }
+      </mat-card-content>
+    </mat-card>
+  </section>
+
+  <!-- ===== File des alertes ===== -->
+  <mat-card appearance="outlined" class="file">
     <mat-card-header>
-      <mat-card-title>Patients à surveiller</mat-card-title>
-      <mat-card-subtitle>Patients ayant des alertes non traitées</mat-card-subtitle>
+      <mat-card-title>Alertes à traiter</mat-card-title>
+      <mat-card-subtitle>Tous patients confondus, les plus graves d'abord</mat-card-subtitle>
     </mat-card-header>
     <mat-card-content>
-      @if (aSurveiller().length) {
-        <mat-nav-list>
-          @for (p of aSurveiller(); track p.id) {
-            <a mat-list-item [routerLink]="['/medecin/patients', p.id]">
-              <mat-icon matListItemIcon>person</mat-icon>
-              <span matListItemTitle>{{ p.prenom }} {{ p.nom }}</span>
-              <span matListItemLine>{{ p.age !== null ? p.age + ' ans' : 'Âge inconnu' }}</span>
-              <app-pastille-alertes matListItemMeta [nombre]="p.alertesNonTraitees" />
-            </a>
-          }
-        </mat-nav-list>
-      } @else {
-        <p class="texte-secondaire">Aucune alerte en attente. 👍</p>
-      }
+      <app-file-alertes
+        [alertes]="d.alertesATraiter"
+        messageVide="Aucune alerte en attente. 👍"
+        (traitee)="surTraitee($event)"
+      />
     </mat-card-content>
-    <mat-card-actions>
-      <a mat-button routerLink="/medecin/patients">Voir tous mes patients</a>
-    </mat-card-actions>
+    @if (d.indicateurs.alertesNonTraitees > d.alertesATraiter.length) {
+      <mat-card-actions>
+        <a mat-button routerLink="/medecin/alertes">Voir les {{ d.indicateurs.alertesNonTraitees }} alertes</a>
+      </mat-card-actions>
+    }
   </mat-card>
+
+  <p class="texte-secondaire note">
+    <mat-icon>lock</mat-icon>
+    Statistiques calculées uniquement sur les patients qui vous ont donné leur consentement,
+    et sur les catégories de données qu'ils ont choisi de partager.
+  </p>
 }

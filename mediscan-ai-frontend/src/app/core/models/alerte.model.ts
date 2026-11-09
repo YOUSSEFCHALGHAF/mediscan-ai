@@ -10,4 +10,7 @@ export interface Alerte {
   traitee: boolean;
   scanId: number | null;
   medicamentNom: string | null;
+  /** Renseignés uniquement dans la file d'alertes du médecin (toutes patients confondus). */
+  patientId?: number;
+  patientNom?: string;
 }

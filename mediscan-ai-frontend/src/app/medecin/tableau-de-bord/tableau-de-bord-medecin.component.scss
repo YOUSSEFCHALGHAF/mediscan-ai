@@ -1,4 +1,7 @@
 .indicateurs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
   margin-bottom: 24px;
 }
 
@@ -9,6 +12,8 @@
   column-gap: 16px;
   align-items: center;
   padding: 20px;
+  color: inherit;
+  text-decoration: none;
 
   mat-icon {
     grid-row: span 2;
@@ -26,10 +31,57 @@
     color: var(--mat-sys-on-surface-variant);
   }
 
+  .elevees {
+    display: block;
+    color: var(--mat-sys-error);
+  }
+
   &.danger mat-icon,
   &.danger .valeur {
     color: var(--mat-sys-error);
   }
+}
+
+a.indicateur:hover,
+a.indicateur:focus-visible {
+  background: var(--mat-sys-surface-container);
+}
+
+/* Graphiques : le premier occupe toute la largeur */
+.graphiques {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+
+  .large {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 900px) {
+  .graphiques {
+    grid-template-columns: 1fr;
+  }
+}
+
+.vide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 200px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.file {
+  margin-bottom: 16px;
+}
+
+.note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .erreur {

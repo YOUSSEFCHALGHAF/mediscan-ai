@@ -38,8 +38,7 @@ export const MEDECIN_ROUTES: Routes = [
       },
             {
         path: 'alertes',
-        loadComponent: () =>
-          import('../shared/components/page-a-venir/page-a-venir.component').then((m) => m.PageAVenirComponent),
+        loadComponent: () => import('./alertes/alertes-medecin.component').then((m) => m.AlertesMedecinComponent),
         data: { titre: 'Alertes de mes patients', etape: 16 },
         title: 'Alertes - MediScan AI',
       },
