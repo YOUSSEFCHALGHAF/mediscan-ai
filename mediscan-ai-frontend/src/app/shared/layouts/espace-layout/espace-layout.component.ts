@@ -13,6 +13,8 @@ import { map } from 'rxjs';
 
 import { AuthService } from '../../../core/services/auth.service';
 import { AlerteService } from '../../../core/services/alerte.service';
+import { NotificationPushService } from '../../../core/notifications/notification-push.service';
+import { BandeauNotificationsComponent } from '../../components/bandeau-notifications/bandeau-notifications.component';
 /** Élément du menu latéral. */
 export interface EntreeMenu {
   lien: string;
@@ -33,6 +35,7 @@ export interface EntreeMenu {
   imports: [
     RouterOutlet, RouterLink, RouterLinkActive,
     MatSidenavModule, MatToolbarModule, MatListModule, MatIconModule, MatButtonModule, MatMenuModule, MatDividerModule,
+    BandeauNotificationsComponent
   ],
   templateUrl: './espace-layout.component.html',
   styleUrl: './espace-layout.component.scss',
@@ -41,6 +44,7 @@ export class EspaceLayoutComponent {
   protected readonly auth = inject(AuthService);
   private readonly sidenav = viewChild.required<MatSidenav>('sidenav');
   protected readonly alerteService = inject(AlerteService);
+  private readonly notificationsPush = inject(NotificationPushService);
   /** Données de la route */
   readonly titreEspace = input('Mon espace');
   readonly menu = input<EntreeMenu[]>([]);
@@ -64,6 +68,8 @@ export class EspaceLayoutComponent {
   constructor() {
     // Patient : on charge le nombre d'alertes non traitées pour la pastille du menu
     if (this.auth.role() === 'PATIENT') {
+          // Notifications : on détermine l'état (sans rien demander à l'utilisateur à ce stade)
+      void this.notificationsPush.initialiser();
       this.alerteService.actualiserCompteur();
     }
   }
@@ -78,7 +84,9 @@ export class EspaceLayoutComponent {
     }
   }
 
-  seDeconnecter(): void {
+  /** Le serveur oublie d'abord ce navigateur (il ne recevra plus les notifications de ce compte). */
+  async seDeconnecter(): Promise<void> {
+    await this.notificationsPush.desinscrire();
     this.auth.deconnecter();
   }
 }

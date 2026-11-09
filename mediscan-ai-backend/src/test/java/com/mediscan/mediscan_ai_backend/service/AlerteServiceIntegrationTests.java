@@ -18,12 +18,15 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
+import com.mediscan.mediscan_ai_backend.event.AlertesGravesEvenement;
+import org.springframework.test.context.event.ApplicationEvents;
+import org.springframework.test.context.event.RecordApplicationEvents;
 /**
  * Prérequis : database/02_donnees_test.sql exécuté.
  * Chaque test est annulé à la fin (@Transactional) : la base reste intacte.
  */
 @SpringBootTest
+@RecordApplicationEvents
 @Transactional
 class AlerteServiceIntegrationTests {
 
@@ -39,6 +42,7 @@ class AlerteServiceIntegrationTests {
     @Autowired private AlerteService alerteService;
     @Autowired private ScanService scanService;
     @Autowired private ScanMedicamentRepository scanRepository;
+    @Autowired private ApplicationEvents evenements;
 
     @Test
     @DisplayName("Scan Advil de Marc : le moteur produit l'interaction ÉLEVÉE avec la warfarine")
@@ -123,5 +127,16 @@ class AlerteServiceIntegrationTests {
     private Long premiereNonTraitee(Long patientId) {
         return alerteService.alertesPatient(patientId).stream()
                 .filter(a -> !a.traitee()).findFirst().orElseThrow().id();
+    }
+    @Test
+    @DisplayName("Une alerte ÉLEVÉE publie l'événement qui déclenche les notifications")
+    void evenementAlerteGrave() {
+        ScanMedicament scan = scanRepository.findById(SCAN_ADVIL_MARC).orElseThrow();
+
+        alerteService.genererPourScan(scan);
+
+        assertThat(evenements.stream(AlertesGravesEvenement.class))
+                .singleElement()
+                .satisfies(e -> assertThat(e.patientId()).isEqualTo(MARC));
     }
 }

@@ -10,6 +10,7 @@ import {
   Rappel,
   Scan,
   Utilisateur,
+  RappelRequest
 } from '../models';
 
 /**
@@ -48,8 +49,20 @@ export class PatientService {
     return this.http.get<Scan>(`${this.url}/scans/${id}`);
   }
 
-  // ----- Rappels (lecture ; création/modification à l'étape 17) -----
+   // ----- Rappels de prise -----
   getRappels(): Observable<Rappel[]> {
     return this.http.get<Rappel[]>(`${this.url}/rappels`);
+  }
+
+  creerRappel(requete: RappelRequest): Observable<Rappel> {
+    return this.http.post<Rappel>(`${this.url}/rappels`, requete);
+  }
+
+  modifierRappel(id: number, requete: RappelRequest): Observable<Rappel> {
+    return this.http.put<Rappel>(`${this.url}/rappels/${id}`, requete);
+  }
+
+  supprimerRappel(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.url}/rappels/${id}`);
   }
 }

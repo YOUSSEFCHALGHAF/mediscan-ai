@@ -1,0 +1,75 @@
+<h2 mat-dialog-title>{{ donnees.rappel ? 'Modifier le rappel' : 'Nouveau rappel de prise' }}</h2>
+
+<form [formGroup]="form" (ngSubmit)="enregistrer()" novalidate>
+  <mat-dialog-content class="champs">
+    <mat-form-field appearance="outline">
+      <mat-label>Médicament</mat-label>
+      <mat-icon matPrefix>medication</mat-icon>
+      <input matInput formControlName="medicament" [matAutocomplete]="listeMedicaments" placeholder="Ex. Doliprane" />
+      <mat-autocomplete #listeMedicaments="matAutocomplete" [displayWith]="afficherMedicament" (optionSelected)="choisirMedicament($event)">
+        @for (m of suggestions(); track m.id) {
+          <mat-option [value]="m"><strong>{{ m.nomCommercial }}</strong> {{ m.dosage }} <span class="dci">· {{ m.dci }}</span></mat-option>
+        }
+      </mat-autocomplete>
+      @if (form.controls.medicament.hasError('medicamentNonChoisi') && !form.controls.medicament.hasError('required')) {
+        <mat-error>Choisissez un médicament dans la liste.</mat-error>
+      } @else {
+        <mat-error>{{ messageChamp(form.controls.medicament) }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Libellé</mat-label>
+      <input matInput formControlName="libelle" placeholder="Ex. Coumadine du soir" />
+      <mat-error>{{ messageChamp(form.controls.libelle) }}</mat-error>
+    </mat-form-field>
+
+    <div class="ligne">
+      <mat-form-field appearance="outline">
+        <mat-label>Heure de prise</mat-label>
+        <input matInput type="time" formControlName="heure" />
+        <mat-error>Heure invalide (HH:mm).</mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Fréquence</mat-label>
+        <mat-select formControlName="frequence">
+          @for (f of frequences; track f.valeur) {
+            <mat-option [value]="f.valeur">{{ f.libelle }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <div class="ligne">
+      <mat-form-field appearance="outline">
+        <mat-label>À partir du</mat-label>
+        <input matInput [matDatepicker]="debut" formControlName="dateDebut" />
+        <mat-datepicker-toggle matIconSuffix [for]="debut" />
+        <mat-datepicker #debut />
+        <mat-error>{{ messageChamp(form.controls.dateDebut) }}</mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Jusqu'au (facultatif)</mat-label>
+        <input matInput [matDatepicker]="fin" formControlName="dateFin" />
+        <mat-datepicker-toggle matIconSuffix [for]="fin" />
+        <mat-datepicker #fin />
+      </mat-form-field>
+    </div>
+
+    @if (form.hasError('periodeInvalide')) {
+      <p class="erreur" role="alert">La date de fin doit être postérieure ou égale à la date de début.</p>
+    }
+    @if (erreur()) {
+      <p class="erreur" role="alert">{{ erreur() }}</p>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" mat-dialog-close>Annuler</button>
+    <button mat-flat-button type="submit" [disabled]="enregistrement()">
+      {{ enregistrement() ? 'Enregistrement…' : 'Enregistrer' }}
+    </button>
+  </mat-dialog-actions>
+</form>

@@ -68,11 +68,10 @@ export const PATIENT_ROUTES: Routes = [
         title: 'Mes alertes - MediScan AI',
         loadComponent: () => import('./alertes/alertes.component').then((m) => m.AlertesComponent),
       },
-      {
+            {
         path: 'rappels',
-        title: 'Rappels - MediScan AI',
-        loadComponent: pageAVenir,
-        data: { titre: 'Mes rappels', etape: 17, icone: 'alarm' },
+        title: 'Mes rappels - MediScan AI',
+        loadComponent: () => import('./rappels/rappels.component').then((m) => m.RappelsComponent),
       },
       {
         path: 'partage',

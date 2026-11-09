@@ -35,12 +35,11 @@
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
-            "assets": [
-              {
-                "glob": "**/*",
-                "input": "public"
-              }
-            ],
+          "assets": [
+            { "glob": "**/*", "input": "public" },
+            { "glob": "firebase-app-compat.js", "input": "node_modules/firebase", "output": "firebase" },
+            { "glob": "firebase-messaging-compat.js", "input": "node_modules/firebase", "output": "firebase" }
+          ],
             "styles": ["src/styles.scss"]
           },
           "configurations": {

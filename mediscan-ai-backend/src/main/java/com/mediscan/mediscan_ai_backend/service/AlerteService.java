@@ -6,6 +6,7 @@ import com.mediscan.mediscan_ai_backend.entity.Alerte;
 import com.mediscan.mediscan_ai_backend.entity.Medicament;
 import com.mediscan.mediscan_ai_backend.entity.PartageDonnees;
 import com.mediscan.mediscan_ai_backend.entity.ScanMedicament;
+import com.mediscan.mediscan_ai_backend.event.AlertesGravesEvenement;
 import com.mediscan.mediscan_ai_backend.exception.ConsentementRequisException;
 import com.mediscan.mediscan_ai_backend.exception.ResourceNotFoundException;
 import com.mediscan.mediscan_ai_backend.ia.InteractionRulesEngine;
@@ -20,7 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
+import com.mediscan.mediscan_ai_backend.entity.enums.NiveauGravite;
+import org.springframework.context.ApplicationEventPublisher;
 /**
  * Alertes de sécurité médicamenteuse  – génération automatique (moteur de règles) après chaque analyse ou correction de scan  – consultation par le patient  – traitement par le médecin (avec consentement ACTIF couvrant les alertes).
  */
@@ -36,7 +38,7 @@ public class AlerteService {
     private final MedicamentRepository medicamentRepository;
     private final ScanMedicamentRepository scanRepository;
     private final PartageDonneesRepository partageRepository;
-
+    private final ApplicationEventPublisher evenements;
     /**
      * (Re)calcule les alertes d'un scan à partir de l'anamnèse du patient.
      * Les alertes NON traitées du scan sont remplacées ; celles déjà traitées par le médecin
@@ -82,7 +84,11 @@ public class AlerteService {
             log.info("Scan {} (patient {}) : {} alerte(s) générée(s) {}", scan.getId(), patientId, nouvelles.size(),
                     nouvelles.stream().map(a -> a.getType() + "/" + a.getNiveauGravite()).toList());
         }
-        // ÉTAPE 17 : notification Firebase au patient (et au médecin) pour les alertes de gravité ÉLEVÉE
+        // Alertes ÉLEVÉES : notification au patient et à ses médecins, APRÈS validation de la transaction
+        long graves = nouvelles.stream().filter(a -> a.getNiveauGravite() == NiveauGravite.ELEVE).count();
+        if (graves > 0) {
+            evenements.publishEvent(new AlertesGravesEvenement(patientId, (int) graves));
+        }
         return nouvelles.stream().map(AlerteResponse::from).toList();
     }
 

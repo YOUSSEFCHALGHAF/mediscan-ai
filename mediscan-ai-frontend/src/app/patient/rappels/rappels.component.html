@@ -1,0 +1,83 @@
+<div class="entete">
+  <h1 class="titre-page">Mes rappels</h1>
+  <button mat-flat-button type="button" (click)="ouvrir()">
+    <mat-icon>add_alarm</mat-icon>
+    Nouveau rappel
+  </button>
+</div>
+
+<!-- État des notifications sur ce navigateur -->
+@switch (notifications.etat()) {
+  @case ('active') {
+    <p class="etat succes"><mat-icon>notifications_active</mat-icon> Notifications activées : vous serez prévenu à l'heure de chaque prise.</p>
+  }
+  @case ('a-demander') {
+    <p class="etat attention">
+      <mat-icon>notifications_off</mat-icon>
+      <span>Activez les notifications pour être prévenu à l'heure de vos prises, même si l'application est fermée.</span>
+      <button mat-stroked-button type="button" (click)="activerNotifications()">Activer</button>
+    </p>
+  }
+  @case ('refuse') {
+    <p class="etat attention">
+      <mat-icon>block</mat-icon>
+      Notifications bloquées : autorisez-les dans les réglages du navigateur (icône 🔒 à gauche de l'adresse), puis rechargez la page.
+    </p>
+  }
+  @case ('non-supporte') {
+    <p class="etat neutre">
+      <mat-icon>info</mat-icon>
+      Ce navigateur ne permet pas les notifications. Sur iPhone, ajoutez MediScan à l'écran d'accueil (bouton Partager).
+    </p>
+  }
+  @case ('non-configure') {
+    <p class="etat neutre"><mat-icon>info</mat-icon> Notifications non configurées sur ce serveur : vos rappels restent consultables ici.</p>
+  }
+  @case ('erreur') {
+    <p class="etat attention"><mat-icon>error</mat-icon> Les notifications n'ont pas pu être activées. Réessayez plus tard.</p>
+  }
+}
+
+@if (chargement()) {
+  <mat-progress-bar mode="indeterminate" />
+} @else if (erreur()) {
+  <p class="bandeau-erreur" role="alert"><mat-icon>error</mat-icon> {{ erreur() }}</p>
+} @else {
+  <ul class="liste" aria-label="Rappels de prise">
+    @for (r of rappels(); track r.id) {
+      <li>
+        <mat-card appearance="outlined" class="rappel" [class.inactif]="!r.actif">
+          <span class="heure">{{ heureCourte(r.heurePrise) }}</span>
+          <div class="infos">
+            <strong>{{ r.libelle }}</strong>
+            <span>{{ r.medicament.nomCommercial }} {{ r.medicament.dosage }}</span>
+            <span class="texte-secondaire">
+              {{ libellesFrequence[r.frequence] }} · depuis le {{ r.dateDebut | date: 'dd/MM/yyyy' }}
+              @if (r.dateFin) { · jusqu'au {{ r.dateFin | date: 'dd/MM/yyyy' }} }
+            </span>
+          </div>
+          <div class="actions">
+            <mat-slide-toggle
+              [checked]="r.actif"
+              [disabled]="enCours().has(r.id)"
+              (change)="basculer(r, $event.checked)"
+              [attr.aria-label]="(r.actif ? 'Mettre en pause ' : 'Réactiver ') + r.libelle"
+            />
+            <button mat-icon-button type="button" (click)="ouvrir(r)" [attr.aria-label]="'Modifier ' + r.libelle">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button type="button" (click)="supprimer(r)" [attr.aria-label]="'Supprimer ' + r.libelle">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </mat-card>
+      </li>
+    } @empty {
+      <li class="vide">
+        <mat-icon>alarm</mat-icon>
+        <p>Aucun rappel pour l'instant.</p>
+        <button mat-flat-button type="button" (click)="ouvrir()">Créer mon premier rappel</button>
+      </li>
+    }
+  </ul>
+}

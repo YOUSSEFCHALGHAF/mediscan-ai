@@ -34,4 +34,18 @@ public interface RappelRepository extends JpaRepository<Rappel, Long> {
             """)
     List<Rappel> findRappelsADeclencher(@Param("heure") LocalTime heure,
                                         @Param("aujourdhui") LocalDate aujourdhui);
+    /**
+     * Rappels actifs dont la période couvre hier ou aujourd'hui (étape 17).
+     * PlanificationRappel décide ensuite, rappel par rappel, s'il faut l'envoyer maintenant.
+     */
+    @Query("""
+            SELECT r FROM Rappel r
+            JOIN FETCH r.patient
+            JOIN FETCH r.medicament
+            WHERE r.actif = true
+              AND r.dateDebut <= :aujourdhui
+              AND (r.dateFin IS NULL OR r.dateFin >= :hier)
+            """)
+    List<Rappel> findRappelsActifsEntre(@Param("hier") LocalDate hier,
+                                        @Param("aujourdhui") LocalDate aujourdhui);
 }

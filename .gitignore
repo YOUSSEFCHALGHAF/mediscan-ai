@@ -42,3 +42,6 @@ desktop.ini
 
 # ---------- Tests OCR ----------
 test-ocr/
+# Secrets Firebase (compte de service) : JAMAIS dans Git
+secrets/
+**/firebase-service-account*.json
