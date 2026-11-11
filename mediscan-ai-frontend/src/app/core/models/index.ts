@@ -13,3 +13,4 @@ export * from './patient.model';
 export * from './api-error.model';
 export * from './sante.model';
 export * from './tableau-de-bord.model';
+export * from './partage.model';

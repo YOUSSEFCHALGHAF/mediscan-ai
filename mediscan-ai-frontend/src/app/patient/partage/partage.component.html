@@ -1,0 +1,72 @@
+<div class="entete">
+  <h1 class="titre-page">Partage avec mes médecins</h1>
+  <button mat-flat-button type="button" (click)="ouvrir()">
+    <mat-icon>person_add</mat-icon>
+    Donner accès à un médecin
+  </button>
+</div>
+
+<p class="texte-secondaire intro">
+  <mat-icon>shield_person</mat-icon>
+  Vos données de santé ne sont visibles par un médecin que si vous l'autorisez, et seulement pour les catégories
+  que vous choisissez. Vous pouvez retirer un accès à tout moment : il prend effet immédiatement.
+</p>
+
+@if (chargement()) {
+  <mat-progress-bar mode="indeterminate" />
+} @else if (erreur()) {
+  <p class="bandeau-erreur" role="alert"><mat-icon>error</mat-icon> {{ erreur() }}</p>
+} @else {
+  <h2 class="titre-section">Médecins ayant accès ({{ actifs().length }})</h2>
+  <ul class="liste" aria-label="Médecins ayant accès à mes données">
+    @for (p of actifs(); track p.id) {
+      <li>
+        <mat-card appearance="outlined" class="partage">
+          <div class="medecin">
+            <mat-icon class="avatar">stethoscope</mat-icon>
+            <div>
+              <strong>Dr {{ p.medecin.prenom }} {{ p.medecin.nom }}</strong>
+              <span class="texte-secondaire">{{ p.medecin.specialite }} · accès depuis le {{ p.dateConsentement | date: 'dd/MM/yyyy' }}</span>
+            </div>
+          </div>
+          <mat-chip-set aria-label="Données partagées">
+            @for (c of p.categories; track c) {
+              <mat-chip>{{ libellesCategorie[c] }}</mat-chip>
+            }
+          </mat-chip-set>
+          <div class="actions">
+            <button mat-stroked-button type="button" (click)="ouvrir(p)">
+              <mat-icon>tune</mat-icon>
+              Modifier
+            </button>
+            <button mat-button type="button" class="danger" (click)="revoquer(p)">
+              <mat-icon>block</mat-icon>
+              Retirer l'accès
+            </button>
+          </div>
+        </mat-card>
+      </li>
+    } @empty {
+      <li class="vide texte-secondaire">Aucun médecin n'a accès à vos données pour le moment.</li>
+    }
+  </ul>
+
+  @if (revoques().length) {
+    <mat-expansion-panel class="historique">
+      <mat-expansion-panel-header>
+        <mat-panel-title>Historique des accès retirés ({{ revoques().length }})</mat-panel-title>
+      </mat-expansion-panel-header>
+      <ul class="liste-historique">
+        @for (p of revoques(); track p.id) {
+          <li>
+            <strong>Dr {{ p.medecin.prenom }} {{ p.medecin.nom }}</strong>
+            <span class="texte-secondaire">
+              du {{ p.dateConsentement | date: 'dd/MM/yyyy' }} au {{ p.dateRevocation | date: 'dd/MM/yyyy à HH:mm' }}
+              · {{ p.categories.map(libelleDe).join(', ') }}
+            </span>
+          </li>
+        }
+      </ul>
+    </mat-expansion-panel>
+  }
+}

@@ -1,0 +1,54 @@
+<h2 mat-dialog-title>{{ modification ? 'Modifier les données partagées' : 'Donner accès à un médecin' }}</h2>
+
+<mat-dialog-content>
+  @if (modification) {
+    <p class="medecin-choisi">
+      <mat-icon>stethoscope</mat-icon>
+      <span><strong>Dr {{ medecin()?.prenom }} {{ medecin()?.nom }}</strong> · {{ medecin()?.specialite }}</span>
+    </p>
+  } @else {
+    <mat-form-field appearance="outline" class="pleine-largeur">
+      <mat-label>Rechercher un médecin</mat-label>
+      <mat-icon matPrefix>search</mat-icon>
+      <input matInput [formControl]="recherche" [matAutocomplete]="liste" placeholder="Nom ou spécialité (ex. cardiologie)" cdkFocusInitial />
+      <mat-autocomplete #liste="matAutocomplete" [displayWith]="afficher" (optionSelected)="choisir($event)">
+        @for (m of resultats(); track m.id) {
+          <mat-option [value]="m" [disabled]="dejaAutorise(m)">
+            <strong>Dr {{ m.prenom }} {{ m.nom }}</strong> <span class="specialite">· {{ m.specialite }}</span>
+            @if (dejaAutorise(m)) { <em class="deja">(a déjà accès)</em> }
+          </mat-option>
+        }
+      </mat-autocomplete>
+      <mat-hint>Tapez au moins 2 lettres, puis choisissez dans la liste.</mat-hint>
+    </mat-form-field>
+  }
+
+  <fieldset class="categories" [formGroup]="cases">
+    <legend>Quelles données ce médecin pourra-t-il consulter ?</legend>
+    @for (c of categories; track c.valeur) {
+      <mat-checkbox [formControlName]="c.valeur">
+        <strong>{{ c.titre }}</strong>
+        <span class="detail">{{ c.detail }}</span>
+      </mat-checkbox>
+    }
+    @if (cases.hasError('aucuneCategorie') && cases.touched) {
+      <p class="erreur" role="alert">Cochez au moins une catégorie.</p>
+    }
+  </fieldset>
+
+  <p class="rappel-droits">
+    <mat-icon>verified_user</mat-icon>
+    Vous pouvez modifier ou retirer cet accès à tout moment. Le médecin ne voit que les catégories cochées.
+  </p>
+
+  @if (erreur()) {
+    <p class="erreur" role="alert">{{ erreur() }}</p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" mat-dialog-close>Annuler</button>
+  <button mat-flat-button type="button" [disabled]="!peutValider()" (click)="valider()">
+    {{ modification ? 'Enregistrer' : 'Autoriser l\'accès' }}
+  </button>
+</mat-dialog-actions>

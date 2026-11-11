@@ -20,4 +20,7 @@ public interface PartageDonneesRepository extends JpaRepository<PartageDonnees, 
 
     @EntityGraph(attributePaths = "patient")
     List<PartageDonnees> findByMedecinIdAndActifTrue(Long medecinId);
+    /** Sécurité : un patient ne manipule que SES partages (sinon 404). */
+    @EntityGraph(attributePaths = "medecin")
+    Optional<PartageDonnees> findByIdAndPatientId(Long id, Long patientId);
 }

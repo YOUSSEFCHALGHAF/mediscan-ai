@@ -1,0 +1,51 @@
+.pleine-largeur {
+  width: 100%;
+}
+
+.specialite,
+.detail {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.deja {
+  margin-left: 4px;
+  font-size: 0.85em;
+}
+
+.medecin-choisi,
+.rappel-droits {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rappel-droits {
+  margin: 16px 0 0;
+  font: var(--mat-sys-body-small);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.categories {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding: 12px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 12px;
+
+  legend {
+    padding: 0 4px;
+    font: var(--mat-sys-title-small);
+  }
+
+  .detail {
+    display: block;
+    font: var(--mat-sys-body-small);
+  }
+}
+
+.erreur {
+  margin: 8px 0 0;
+  color: var(--mat-sys-error);
+}
