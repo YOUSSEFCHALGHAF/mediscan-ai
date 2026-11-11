@@ -100,7 +100,23 @@
           "defaultConfiguration": "development"
         },
         "test": {
-          "builder": "@angular/build:unit-test"
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "coverageExclude": [
+              "src/app/core/notifications/firebase-client.ts",
+              "src/app/core/graphiques/chargeur-graphiques.ts",
+              "src/app/core/services/compression-image.service.ts",
+              "src/app/patient/scanner/capture-webcam/**",
+              "src/environments/**"
+            ],
+            "coverageReporters": ["text-summary", "html", "lcov"],
+            "coverageThresholds": {
+              "statements": 75,
+              "branches": 68,
+              "functions": 70,
+              "lines": 78
+            }
+          }
         }
       }
     }

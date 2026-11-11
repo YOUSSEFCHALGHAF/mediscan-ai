@@ -42,3 +42,7 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+# Rapports de tests (régénérés à chaque exécution)
+/coverage
+/playwright-report
+/test-results

@@ -20,11 +20,14 @@ html {
 // Couleurs métier de l'application (utilisées par les alertes, badges, états)
 :root {
   --ms-succes: #1b7f3b;
-  --ms-avertissement: #b26a00;
+  //--ms-avertissement: #b26a00;
   --ms-danger: var(--mat-sys-error);
   --ms-gravite-faible: #1b7f3b;
   --ms-gravite-moyen: #b26a00;
   --ms-gravite-eleve: #ba1a1a;
+}
+.etat.attention {
+  color: #7a4100;   /* au lieu de #b26a00 : contraste ≈ 6,5:1 sur ce fond */
 }
 
 body {
@@ -94,3 +97,26 @@ body {
     )
   );
 }
+/* ===== Accessibilité : contrastes WCAG AA (≥ 4,5:1) ===== */
+
+/* Alertes : texte foncé sur fond clair */
+.gravite-ELEVE .gravite  { background: #fde7e9 !important; color: #8c1d18 !important; }
+.gravite-MOYEN .gravite  { background: #fff4e0 !important; color: #7a4100 !important; }
+.gravite-FAIBLE .gravite { background: #e8f1fb !important; color: #0b4f8a !important; }
+.badge-traitee           { background: #e6f4ea !important; color: #1e5631 !important; }
+.gravite-ELEVE .pied .texte-secondaire { color: #4a4a4a !important; }
+
+/* Historique : badges de statut des scans */
+.statut                  { background: #eceff1 !important; color: #263238 !important; }
+.statut-TERMINE          { background: #e6f4ea !important; color: #1e5631 !important; }
+.statut-A_VERIFIER       { background: #fff4e0 !important; color: #7a4100 !important; }
+.statut-ECHEC            { background: #fde7e9 !important; color: #8c1d18 !important; }
+.statut-EN_COURS         { background: #e8f1fb !important; color: #0b4f8a !important; }
+
+/* Rappels inactifs : pas d'opacité sur le texte, une couleur grise lisible à la place */
+.inactif                 { opacity: 1 !important; }
+.inactif, .inactif p     { color: #5f6368 !important; }
+[class*="traite"], [class*="inactif"] { opacity: 1 !important; }
+[class*="traite"] 
+.texte-secondaire, [class*="inactif"] p { color: #5f6368 !important; }
+.etat.attention { color: #7a4100 !important; }

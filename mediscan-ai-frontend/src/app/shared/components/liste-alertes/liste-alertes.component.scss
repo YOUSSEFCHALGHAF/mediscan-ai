@@ -104,3 +104,15 @@
     height: 18px;
   }
 }
+/* liste-alertes.component.scss */
+.gravite-ELEVE .gravite { background: #fde7e9; color: #8c1d18; }  /* contraste ≈ 8:1 */
+.gravite-MOYEN .gravite { background: #fff4e0; color: #7a4100; }
+.gravite-FAIBLE .gravite { background: #e8f1fb; color: #0b4f8a; }
+.badge-traitee          { background: #e6f4ea; color: #1e5631; }
+.gravite-ELEVE .pied .texte-secondaire { color: #4a4a4a; }
+
+/* historique : badge de statut */
+.statut { background: #eceff1; color: #37474f; }
+
+/* rappels : rappel inactif, sans opacité */
+.inactif { opacity: 1; color: #5f6368; }
